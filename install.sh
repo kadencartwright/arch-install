@@ -119,28 +119,6 @@ EOF
 LUKS_UUID=$(blkid -s UUID -o value "${LUKS_PARTITION}")
 OPTIONS="nowatchdog rd.luks.uuid=$LUKS_UUID root=$VG_ROOT_PATH"
 
-cat <<EOF >./cfgs/arch.conf
-title   Arch Linux
-linux   /vmlinuz-linux
-initrd  /initramfs-linux.img
-options $OPTIONS 
-EOF
-
-cat <<EOF >./cfgs/arch-fallback.conf
-title   Arch Linux
-linux   /vmlinuz-linux
-initrd  /initramfs-linux-fallback.img
-options $OPTIONS 
-EOF
-
-
-cat <<EOF >./cfgs/loader.conf
-default              arch.conf
-timeout              3
-console-mode         auto
-reboot-for-bitlocker 1
-EOF
-
 cat <<'EOF' >./cfgs/dracut-install.sh
 #!/usr/bin/env bash
 

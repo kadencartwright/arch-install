@@ -13,3 +13,4 @@ network-manager-applet
 zsh
 zsh-autosuggestions
 zsh-completions
+alacritty

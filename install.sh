@@ -102,7 +102,9 @@ mount --mkdir "${BOOT_PARTITION}" /mnt/boot
 ./pacstrap.sh 
 
 genfstab -U /mnt >> /mnt/etc/fstab
-
+#edit fstab
+sed -i 's/fmask=0022/fmask=0137/' /mnt/etc/fstab
+sed -i 's/dmask=0022/dmask=0027/' /mnt/etc/fstab
 # pacman hook to update systemd boot
 #cat <<EOF >/etc/pacman.d/hooks/95-systemd-boot.hook
 cat <<EOF >./cfgs/95-systemd-boot.hook

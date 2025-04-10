@@ -188,6 +188,7 @@ EOF
 cp -r ./cfgs/ /mnt/root/cfgs
 cp ./install-hooks.sh /mnt/root/install-hooks.sh
 cp ./chrooted.sh /mnt/root/chrooted.sh
+cp ./install-yay.sh /mnt/root/install-yay.sh
 
 ( arch-chroot /mnt /root/install-hooks.sh )|& tee install-hooks.log
 ( PASSWORD=$PASSWORD HOSTNAME=$HOSTNAME arch-chroot /mnt /root/chrooted.sh )|& tee chrooted.log

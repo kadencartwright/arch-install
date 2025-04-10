@@ -1,0 +1,15 @@
+pipewire
+pipewire-jack
+pipewire-audio
+pipewire-alsa
+hyprland
+xdg-desktop-portal-hyprland
+hyprpolkitagent
+power-profiles-daemon
+ttf-meslo-nerd
+ttf-dejavu-nerd
+pipewire-pulse
+network-manager-applet
+zsh
+zsh-autosuggestions
+zsh-completions

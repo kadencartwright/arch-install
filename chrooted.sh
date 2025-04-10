@@ -21,5 +21,3 @@ bootctl install
 dracut --regenerate-all 
 
 systemctl enable NetworkManager
-echo 'Installing yay'
-./install-yay.sh

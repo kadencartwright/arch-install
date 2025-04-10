@@ -1,5 +1,4 @@
 #!/bin/env sh
-printenv
 echo "Setting Timezone"
 ln -sf /usr/share/zoneinfo/America/Chicago /etc/localtime
 
@@ -12,7 +11,8 @@ echo -n "$PASSWORD" | passwd --stdin
 USERNAME=k
 useradd $USERNAME -m 
 echo -n "$PASSWORD" | passwd $USERNAME --stdin
-
+usermod -aG wheel $USERNAME
+echo '%wheel ALL=(ALL:ALL) ALL' | sudo EDITOR='tee -a' visudo
 # set hostname
 echo $HOSTNAME > /etc/hostname
 

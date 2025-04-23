@@ -43,8 +43,13 @@ fi
 # lvm partition for the rest of the drive
 echo "Partitioning disk"
 sgdisk --clear -n 1:0:+1G -t 1:ef00 -n 2:0:+0 -t 2:8e00 "${selected}"
-BOOT_PARTITION="${selected}1"
-LUKS_PARTITION="${selected}2"
+string=$(echo $selected*)
+
+partitions=($string)
+BOOT_PARTITION="$(echo ${partitions[1]})"
+echo "using $BOOT_PARTITION as boot partition"
+LUKS_PARTITION="$(echo ${partitions[2]})"
+echo "using $LUKS_PARTITION as LUKS partition"
 
 echo "Formatting Boot partition as FAT32"
 # format EFI partition
@@ -53,7 +58,7 @@ mkfs.fat -F 32 $BOOT_PARTITION
 
 
 echo "formatting LUKS Partition"
-# create a LUKS partiton
+# create a LUKS partition
 echo -n $LUKS_PASSPHRASE | cryptsetup luksFormat $LUKS_PARTITION -
 
 # open the LUKS partition

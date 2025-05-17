@@ -15,3 +15,7 @@ zsh-autosuggestions
 zsh-completions
 alacritty
 waybar
+rustup
+fuzzel
+luarocs
+firefox

@@ -18,4 +18,6 @@ waybar
 rustup
 fuzzel
 luarocs
-firefox
+chromium
+bitwarden
+gnome-keyring

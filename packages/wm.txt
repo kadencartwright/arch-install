@@ -3,10 +3,14 @@ pipewire-jack
 pipewire-audio
 pipewire-alsa
 hyprland
+hyprlock
+hyprpaper
+hypridle
 xdg-desktop-portal-hyprland
 hyprpolkitagent
 power-profiles-daemon
 ttf-meslo-nerd
+ttf-font-awesome
 ttf-dejavu-nerd
 pipewire-pulse
 network-manager-applet
@@ -17,7 +21,10 @@ alacritty
 waybar
 rustup
 fuzzel
-luarocs
+luarocks
+<<<<<<< Updated upstream
 chromium
 bitwarden
 gnome-keyring
+net-tools
+nwg-displays

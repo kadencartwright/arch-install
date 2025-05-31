@@ -15,3 +15,9 @@ set up tpm auto unlocking
     - set dracut to use the following options
             add_dracutmodules+=" tpm2-tss crypt "
             add_modules+=" tpm2-tss crypt "
+Set up lid switch suspend config
+- /etc/systemd/logind.conf
+        HandleLidSwitch=suspend
+        HandleLidSwitchExternalPower=ignore
+        HandleLidSwitchDocked=ignore
+

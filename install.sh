@@ -128,23 +128,46 @@ LUKS_UUID=$(blkid -s UUID -o value "${LUKS_PARTITION}")
 OPTIONS="nowatchdog rd.luks.uuid=$LUKS_UUID root=$VG_ROOT_PATH"
 
 cat <<'EOF' >./cfgs/dracut-install.sh
-#!/usr/bin/env bash
+#!/bin/bash -e
 
-args=('--force' '--no-hostonly-cmdline')
+all=0
+lines=()
 
 while read -r line; do
-    if [[ "$line" == 'usr/lib/modules/'+([^/])'/pkgbase' ]]; then
-        read -r pkgbase < "/${line}"
-        kver="${line#'usr/lib/modules/'}"
-        kver="${kver%'/pkgbase'}"
+	if [[ "${line}" != */vmlinuz ]]; then
+		# triggers when it's a change to dracut files
+		all=1
+		continue
+	fi
 
-        install -Dm0644 "/${line%'/pkgbase'}/vmlinuz" "/boot/vmlinuz-${pkgbase}"
-        dracut "${args[@]}" --hostonly "/boot/initramfs-${pkgbase}.img" --kver "$kver"
-        dracut "${args[@]}" --add-confdir rescue  "/boot/initramfs-${pkgbase}-fallback.img" --kver "$kver"
-    fi
+	lines+=("/${line%/vmlinuz}")
+
+	pkgbase="$(<"${lines[-1]}/pkgbase")"
+	install -Dm644 "/${line}" "/boot/vmlinuz-${pkgbase}"
+done
+
+if (( all )); then
+	lines=(/usr/lib/modules/*)
+fi
+
+for line in "${lines[@]}"; do
+	if ! pacman -Qqo "${line}/pkgbase" &> /dev/null; then
+		# if pkgbase does not belong to any package then skip this kernel
+		continue
+	fi
+
+	pkgbase="$(<"${line}/pkgbase")"
+	kver="${line##*/}"
+	dracut_restore_img="/usr/lib/modules/${kver}/initrd"
+
+	echo ":: Building initramfs for ${pkgbase} (${kver})"
+	dracut --force --hostonly --no-hostonly-cmdline ${dracut_restore_img} "${kver}"
+	install -Dm644 ${dracut_restore_img} "/boot/initramfs-${pkgbase}.img"
+
+	echo ":: Building fallback initramfs for ${pkgbase} (${kver})"
+	dracut --force --no-hostonly "/boot/initramfs-${pkgbase}-fallback.img" "${kver}"
 done
 EOF
-
 cat <<'EOF' >./cfgs/dracut-remove.sh
 #!/usr/bin/env bash
 

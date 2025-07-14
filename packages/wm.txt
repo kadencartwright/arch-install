@@ -42,3 +42,4 @@ zsh
 zsh-autosuggestions
 zsh-completions
 ripgrep
+systemd-ukify

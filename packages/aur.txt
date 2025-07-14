@@ -1,0 +1,8 @@
+dracut-ukify
+bemoji
+bluetuith-bin
+reflector-simple
+tmux-sessionizer-bin
+ttf-apple-emoji
+ttf-segoe-ui-variable
+spotify

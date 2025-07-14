@@ -41,3 +41,4 @@ xdg-desktop-portal-hyprland
 zsh
 zsh-autosuggestions
 zsh-completions
+ripgrep

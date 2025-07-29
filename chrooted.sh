@@ -22,8 +22,11 @@ chsh -s $(which zsh) $USERNAME
 cp /root/install-yay.sh /home/$USERNAME/
 cp /root/install-dotfiles.sh /home/$USERNAME/
 cp /root/install-aur-packages.sh /home/$USERNAME/
+cp /root/packages/aur.txt /home/$USERNAME/
+
 chown $USERNAME /home/$USERNAME/install-yay.sh
 chown $USERNAME /home/$USERNAME/install-aur-packages.sh
+chown $USERNAME /home/$USERNAME/aur.txt
 chown $USERNAME /home/$USERNAME/install-dotfiles.sh
 
 su - $USERNAME -c /home/$USERNAME/install-yay.sh 

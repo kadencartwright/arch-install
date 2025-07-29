@@ -1,2 +1,2 @@
 #! /bin/env sh
-yay -S --noconfirm - < /root/packages/aur.txt
+yay -S --noconfirm - < $HOME/aur.txt

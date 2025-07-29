@@ -220,6 +220,7 @@ cp ./install-hooks.sh /mnt/root/install-hooks.sh
 cp ./chrooted.sh /mnt/root/chrooted.sh
 cp ./install-yay.sh /mnt/root/install-yay.sh
 cp ./install-dotfiles.sh /mnt/root/install-dotfiles.sh
+cp ./install-aur-packages.sh /mnt/root/install-aur-packages.sh
 
 ( arch-chroot /mnt /root/install-hooks.sh )|& tee install-hooks.log
 ( PASSWORD=$PASSWORD HOSTNAME=$HOSTNAME arch-chroot /mnt /root/chrooted.sh )|& tee chrooted.log

@@ -73,9 +73,9 @@ VG_NAME="vg1"
 vgcreate $VG_NAME /dev/mapper/cryptlvm
 
 echo "Creating root volume"
-# create logical volume named root on the volume group with 40 GB of space
+# create logical volume named root on the volume group with 80 GB of space
 VG_ROOT_NAME="root"
-lvcreate -L 40G vg1 -n $VG_ROOT_NAME 
+lvcreate -L 80G vg1 -n $VG_ROOT_NAME 
 
 echo "Creating home volume"
 # create logical volume named home on the volume group with the rest of the space

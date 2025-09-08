@@ -43,3 +43,4 @@ zsh-autosuggestions
 zsh-completions
 ripgrep
 systemd-ukify
+otf-font-awesome

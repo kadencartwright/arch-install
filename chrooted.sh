@@ -10,11 +10,15 @@ locale-gen
 echo "LANG=en_US.UTF-8" >/etc/locale.conf
 
 echo "setting password for root user"
-echo -n "$PASSWORD" | passwd --stdin
+echo "root:$PASSWORD" | chpasswd
 USERNAME=k
 echo "creating user: $USERNAME"
 useradd $USERNAME -m 
 
+echo "setting password for user: $USERNAME"
+echo "$USERNAME:$PASSWORD" | chpasswd
+usermod -aG wheel $USERNAME
+echo "%wheel ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/wheel
 
 # set default shell
 chsh -s $(which zsh) $USERNAME
@@ -31,11 +35,10 @@ chown $USERNAME /home/$USERNAME/install-dotfiles.sh
 
 su - $USERNAME -c /home/$USERNAME/install-yay.sh 
 su - $USERNAME -c /home/$USERNAME/install-aur-packages.sh 
-su - $USERNAME -c /home/$USERNAME/install-dotfiles.sh 
-echo "setting password for user: $USERNAME"
-echo -n "$PASSWORD" | passwd $USERNAME --stdin
-usermod -aG wheel $USERNAME
-echo '%wheel ALL=(ALL:ALL) ALL' | sudo EDITOR='tee -a' visudo
+su - $USERNAME -c /home/$USERNAME/install-dotfiles.sh
+
+# Revert sudoers to require password
+echo "%wheel ALL=(ALL:ALL) ALL" > /etc/sudoers.d/wheel
 # set hostname
 echo $HOSTNAME > /etc/hostname
 

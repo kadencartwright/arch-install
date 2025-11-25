@@ -45,3 +45,4 @@ ripgrep
 systemd-ukify
 otf-font-awesome
 profile-sync-daemon
+thunderbird

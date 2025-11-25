@@ -42,8 +42,14 @@ echo "%wheel ALL=(ALL:ALL) ALL" > /etc/sudoers.d/wheel
 # set hostname
 echo $HOSTNAME > /etc/hostname
 
+
 echo "Running bootctl install"
 bootctl install
+
+echo "Enrolling TPM2"
+echo -n "$LUKS_PASSPHRASE" > /tmp/luks-key
+systemd-cryptenroll --wipe-slot tpm2 --tpm2-device auto --unlock-key-file=/tmp/luks-key $LUKS_PARTITION
+rm /tmp/luks-key
 
 echo "Running dracut"
 dracut --regenerate-all 

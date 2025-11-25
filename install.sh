@@ -223,4 +223,4 @@ cp ./install-dotfiles.sh /mnt/root/install-dotfiles.sh
 cp ./install-aur-packages.sh /mnt/root/install-aur-packages.sh
 
 ( arch-chroot /mnt /root/install-hooks.sh )|& tee install-hooks.log
-( PASSWORD=$PASSWORD HOSTNAME=$HOSTNAME arch-chroot /mnt /root/chrooted.sh )|& tee chrooted.log
+( PASSWORD=$PASSWORD HOSTNAME=$HOSTNAME LUKS_PARTITION=$LUKS_PARTITION LUKS_PASSPHRASE=$LUKS_PASSPHRASE arch-chroot /mnt /root/chrooted.sh )|& tee chrooted.log

@@ -1,7 +1,16 @@
-#! /bin/env sh
-rm -rf /tmp/yay
-mkdir -p /tmp/yay
-cd /tmp/yay
-curl -OJ 'https://aur.archlinux.org/cgit/aur.git/plain/PKGBUILD?h=yay'
-makepkg -si --noconfirm
-rm -rf /tmp/yay
+#!/usr/bin/env bash
+set -euo pipefail
+IFS=$'\n\t'
+
+command -v curl >/dev/null 2>&1 || { echo "curl is required" >&2; exit 1; }
+command -v makepkg >/dev/null 2>&1 || { echo "makepkg is required" >&2; exit 1; }
+
+tmpdir="$(mktemp -d /tmp/yay-build.XXXXXX)"
+cleanup() {
+  rm -rf "$tmpdir"
+}
+trap cleanup EXIT
+
+cd "$tmpdir"
+curl -fsSL -o PKGBUILD 'https://aur.archlinux.org/cgit/aur.git/plain/PKGBUILD?h=yay'
+makepkg --syncdeps --install --noconfirm --needed

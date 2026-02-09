@@ -23,6 +23,7 @@ Options:
   --root-password PASS  Root password for test install (default: rootpass)
   --user-password PASS  User password for test install (default: userpass)
   --luks-password PASS  LUKS password for test install (default: lukspass)
+  --installer MODE      Installer mode: ansible|shell (default: ansible)
   --timeout SEC         Global expect timeout in seconds (default: 5400)
   --keep                Keep VM temp dir and logs
   --help                Show this help
@@ -73,6 +74,7 @@ TIMEZONE_VALUE="America/Chicago"
 ROOT_PASSWORD="rootpass"
 USER_PASSWORD="userpass"
 LUKS_PASSWORD="lukspass"
+INSTALLER_MODE="ansible"
 EXPECT_TIMEOUT="5400"
 KEEP=0
 
@@ -126,6 +128,10 @@ while (($# > 0)); do
       LUKS_PASSWORD="${2:-}"
       shift 2
       ;;
+    --installer)
+      INSTALLER_MODE="${2:-}"
+      shift 2
+      ;;
     --timeout)
       EXPECT_TIMEOUT="${2:-}"
       shift 2
@@ -153,6 +159,8 @@ require_cmd qemu-img
 require_cmd expect
 require_cmd base64
 require_cmd rsync
+
+[[ "$INSTALLER_MODE" == "ansible" || "$INSTALLER_MODE" == "shell" ]] || die "--installer must be ansible or shell"
 
 TMP_DIR="$(mktemp -d /tmp/arch-install-ci.XXXXXX)"
 DISK_PATH="${TMP_DIR}/${VM_NAME}.qcow2"
@@ -279,6 +287,10 @@ send_cmd "printf '%s' '$env(USER_PASSWORD_B64)' | base64 -d > /tmp/user_password
 send_cmd "printf '%s' '$env(LUKS_PASSWORD_B64)' | base64 -d > /tmp/luks_password"
 
 set install_cmd "./install.sh --disk /dev/vda --hostname $env(HOSTNAME_VALUE) --username $env(USERNAME_VALUE) --timezone $env(TIMEZONE_VALUE) --root-password-file /tmp/root_password --user-password-file /tmp/user_password --luks-password-file /tmp/luks_password --confirm-destroy /dev/vda --non-interactive"
+if {$env(INSTALLER_MODE) == "ansible"} {
+  send_cmd "pacman -S --noconfirm --needed ansible rsync python"
+  set install_cmd "./scripts/run-ansible-install.sh --disk /dev/vda --confirm-destroy /dev/vda --hostname $env(HOSTNAME_VALUE) --username $env(USERNAME_VALUE) --timezone $env(TIMEZONE_VALUE) --root-password-file /tmp/root_password --user-password-file /tmp/user_password --luks-password-file /tmp/luks_password"
+}
 send -- "$install_cmd > /root/install-run.log 2>&1 ; echo __INSTALL_RC:$?\r"
 
 expect {
@@ -322,9 +334,11 @@ export LUKS_PASSWORD_B64
 export HOSTNAME_VALUE
 export USERNAME_VALUE
 export TIMEZONE_VALUE
+export INSTALLER_MODE
 
 log "Starting unattended VM run"
 log "Logs: ${EXPECT_LOG}"
+log "Installer mode: ${INSTALLER_MODE}"
 
 if ! expect "$EXPECT_SCRIPT"; then
   log "Unattended run failed. Inspect: ${EXPECT_LOG}"

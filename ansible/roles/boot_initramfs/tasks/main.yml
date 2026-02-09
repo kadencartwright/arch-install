@@ -1,0 +1,135 @@
+---
+- name: Ensure pacman and dracut config directories exist
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+  loop:
+    - /etc/pacman.d/hooks
+    - /etc/dracut.conf.d
+
+- name: Install systemd-boot pacman hook
+  ansible.builtin.copy:
+    src: /root/cfgs/95-systemd-boot.hook
+    dest: /etc/pacman.d/hooks/95-systemd-boot.hook
+    remote_src: true
+    mode: '0644'
+
+- name: Install dracut hostonly config
+  ansible.builtin.copy:
+    src: /root/cfgs/hostonly.conf
+    dest: /etc/dracut.conf.d/hostonly.conf
+    remote_src: true
+    mode: '0644'
+
+- name: Install dracut UEFI config
+  ansible.builtin.copy:
+    src: /root/cfgs/uefi.conf
+    dest: /etc/dracut.conf.d/uefi.conf
+    remote_src: true
+    mode: '0644'
+
+- name: Ensure pacman cosmetic and parallel options
+  ansible.builtin.replace:
+    path: /etc/pacman.conf
+    regexp: '{{ item.regexp }}'
+    replace: '{{ item.replace }}'
+  loop:
+    - { regexp: '^#Color', replace: 'Color' }
+    - { regexp: '^#ParallelDownloads', replace: 'ParallelDownloads' }
+
+- name: Ensure ILoveCandy line exists
+  ansible.builtin.lineinfile:
+    path: /etc/pacman.conf
+    insertafter: '^#VerbosePkgLists'
+    line: ILoveCandy
+
+- name: Tune makepkg jobs
+  ansible.builtin.shell: |
+    set -euo pipefail
+    sed -i "s/-j2/-j$(nproc)/;s/^#MAKEFLAGS/MAKEFLAGS/" /etc/makepkg.conf
+  args:
+    executable: /bin/bash
+
+- name: Install systemd-boot
+  ansible.builtin.command: bootctl install
+
+- name: Optionally enroll TPM2 unlock for LUKS
+  when: install_enable_tpm_enroll | bool
+  block:
+    - name: Create temporary key file
+      ansible.builtin.tempfile:
+        state: file
+        path: /tmp
+        prefix: luks-key.
+      register: tpm_key_file
+      no_log: true
+
+    - name: Write LUKS key
+      ansible.builtin.copy:
+        dest: "{{ tpm_key_file.path }}"
+        mode: '0600'
+        content: "{{ install_luks_passphrase }}"
+      no_log: true
+
+    - name: Enroll TPM2 slot
+      ansible.builtin.command: >-
+        systemd-cryptenroll --wipe-slot tpm2 --tpm2-device auto
+        --unlock-key-file={{ tpm_key_file.path }} {{ install_luks_partition }}
+      no_log: true
+  always:
+    - name: Remove temporary TPM key file
+      ansible.builtin.file:
+        path: "{{ tpm_key_file.path | default('') }}"
+        state: absent
+      when: tpm_key_file is defined
+
+- name: Disable default dracut install hook
+  ansible.builtin.file:
+    src: /dev/null
+    dest: /etc/pacman.d/hooks/90-dracut-install.hook
+    state: link
+    force: true
+
+- name: Regenerate initramfs
+  ansible.builtin.command: dracut --regenerate-all
+
+- name: Get current root source
+  ansible.builtin.command: findmnt / -n -o SOURCE
+  register: root_source_cmd
+  changed_when: false
+
+- name: Get current root filesystem type
+  ansible.builtin.command: findmnt / -n -o FSTYPE
+  register: root_fstype_cmd
+  changed_when: false
+
+- name: Get LVM VG name
+  ansible.builtin.command: "lvs --noheadings -o vg_name {{ root_source_cmd.stdout }}"
+  register: lvm_vg_cmd
+  changed_when: false
+
+- name: Get LVM LV name
+  ansible.builtin.command: "lvs --noheadings -o lv_name {{ root_source_cmd.stdout }}"
+  register: lvm_lv_cmd
+  changed_when: false
+
+- name: Get LUKS UUID from configured partition
+  ansible.builtin.command: "blkid -s UUID -o value {{ install_luks_partition }}"
+  register: luks_uuid_cmd
+  changed_when: false
+
+- name: Write /etc/kernel/cmdline
+  ansible.builtin.template:
+    src: "{{ playbook_dir }}/../templates/kernel_cmdline.j2"
+    dest: /etc/kernel/cmdline
+    mode: '0644'
+  vars:
+    root_source: "{{ root_source_cmd.stdout | trim }}"
+    root_fstype: "{{ root_fstype_cmd.stdout | trim }}"
+    lvm_vg_name: "{{ lvm_vg_cmd.stdout | trim }}"
+    lvm_lv_name: "{{ lvm_lv_cmd.stdout | trim }}"
+    luks_uuid: "{{ luks_uuid_cmd.stdout | trim }}"
+
+- name: Enable NetworkManager
+  ansible.builtin.command: systemctl enable NetworkManager

@@ -1,0 +1,132 @@
+---
+- name: Derive partition paths from install disk
+  ansible.builtin.set_fact:
+    install_boot_partition: >-
+      {{ install_disk ~ ('p1' if (install_disk is match('^/dev/(nvme|mmcblk)')) else '1') }}
+    install_luks_partition: >-
+      {{ install_disk ~ ('p2' if (install_disk is match('^/dev/(nvme|mmcblk)')) else '2') }}
+
+- name: Verify install disk exists as block device
+  ansible.builtin.stat:
+    path: "{{ install_disk }}"
+  register: disk_stat
+
+- name: Validate install disk block device
+  ansible.builtin.assert:
+    that:
+      - disk_stat.stat.exists
+      - disk_stat.stat.isblk
+    fail_msg: "install_disk is not a valid block device: {{ install_disk }}"
+
+- name: Sync time with NTP
+  ansible.builtin.command: timedatectl set-ntp true
+  changed_when: false
+
+- name: Partition disk for EFI + LUKS/LVM
+  ansible.builtin.command:
+    argv:
+      - sgdisk
+      - --clear
+      - -n
+      - "1:0:+{{ install_boot_size_gib }}G"
+      - -t
+      - 1:ef00
+      - -n
+      - 2:0:+0
+      - -t
+      - 2:8e00
+      - "{{ install_disk }}"
+
+- name: Wait for partition table to settle
+  ansible.builtin.command: udevadm settle
+  changed_when: false
+
+- name: Verify created partitions exist
+  ansible.builtin.stat:
+    path: "{{ item }}"
+  loop:
+    - "{{ install_boot_partition }}"
+    - "{{ install_luks_partition }}"
+  register: partition_stats
+
+- name: Assert partitions are valid block devices
+  ansible.builtin.assert:
+    that:
+      - item.stat.exists
+      - item.stat.isblk
+    fail_msg: "Partition not available: {{ item.stat.path | default('unknown') }}"
+  loop: "{{ partition_stats.results }}"
+
+- name: Format EFI partition
+  ansible.builtin.command: mkfs.fat -F 32 {{ install_boot_partition }}
+
+- name: Wipe existing cryptlvm mapper if present
+  ansible.builtin.command: cryptsetup close cryptlvm
+  register: crypt_close
+  failed_when: crypt_close.rc not in [0, 4]
+  changed_when: crypt_close.rc == 0
+
+- name: Format LUKS partition
+  ansible.builtin.shell: |
+    set -euo pipefail
+    printf '%s' '{{ install_luks_passphrase }}' | cryptsetup luksFormat --batch-mode {{ install_luks_partition }} --key-file -
+  args:
+    executable: /bin/bash
+  no_log: true
+
+- name: Open LUKS partition
+  ansible.builtin.shell: |
+    set -euo pipefail
+    printf '%s' '{{ install_luks_passphrase }}' | cryptsetup open {{ install_luks_partition }} cryptlvm --key-file -
+  args:
+    executable: /bin/bash
+  no_log: true
+
+- name: Create physical volume
+  ansible.builtin.command: pvcreate /dev/mapper/cryptlvm
+
+- name: Create volume group
+  ansible.builtin.command: vgcreate {{ install_vg_name }} /dev/mapper/cryptlvm
+
+- name: Create root logical volume
+  ansible.builtin.command: lvcreate -L {{ install_root_lv_size }} {{ install_vg_name }} -n {{ install_root_lv_name }}
+
+- name: Create home logical volume
+  ansible.builtin.command: lvcreate -l 100%FREE {{ install_vg_name }} -n {{ install_home_lv_name }}
+
+- name: Format root logical volume
+  ansible.builtin.command: mkfs.ext4 -m 1 /dev/{{ install_vg_name }}/{{ install_root_lv_name }}
+
+- name: Format home logical volume
+  ansible.builtin.command: mkfs.ext4 -m 1 /dev/{{ install_vg_name }}/{{ install_home_lv_name }}
+
+- name: Ensure mount directories exist
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+  loop:
+    - "{{ install_mount_root }}"
+    - "{{ install_mount_root }}/home"
+    - "{{ install_mount_root }}/boot"
+
+- name: Mount root filesystem
+  ansible.posix.mount:
+    path: "{{ install_mount_root }}"
+    src: "/dev/{{ install_vg_name }}/{{ install_root_lv_name }}"
+    fstype: ext4
+    state: mounted
+
+- name: Mount home filesystem
+  ansible.posix.mount:
+    path: "{{ install_mount_root }}/home"
+    src: "/dev/{{ install_vg_name }}/{{ install_home_lv_name }}"
+    fstype: ext4
+    state: mounted
+
+- name: Mount boot filesystem
+  ansible.posix.mount:
+    path: "{{ install_mount_root }}/boot"
+    src: "{{ install_boot_partition }}"
+    fstype: vfat
+    state: mounted

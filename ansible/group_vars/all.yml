@@ -1,0 +1,47 @@
+install_mount_root: /mnt
+install_disk: ""
+install_confirm_destroy: ""
+
+install_boot_size_gib: 1
+install_vg_name: vg1
+install_root_lv_name: root
+install_root_lv_size: 80G
+install_home_lv_name: home
+
+install_hostname: arch-host
+install_username: k
+install_timezone: America/Chicago
+install_locale: en_US.UTF-8
+install_enable_tpm_enroll: true
+
+install_bootloader: systemd-boot
+
+install_root_password_file: ""
+install_user_password_file: ""
+install_luks_password_file: ""
+
+install_base_packages:
+  - base
+  - linux
+  - base-devel
+  - linux-firmware
+  - lvm2
+  - neovim
+  - git
+  - networkmanager
+  - amd-ucode
+  - intel-ucode
+  - man-db
+  - man-pages
+  - dracut
+  - bluez
+  - bluez-utils
+  - rpcbind
+  - go
+  - zsh
+  - python
+  - sudo
+
+dotfiles_repo_url: https://github.com/kadencartwright/dotfiles
+dotman_repo_url: https://github.com/kadencartwright/dotman
+dotman_manifest_path: ./dotman.toml

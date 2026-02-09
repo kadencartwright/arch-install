@@ -1,0 +1,18 @@
+---
+- name: Register chroot target host for postcheck
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Add target chroot host
+      ansible.builtin.add_host:
+        name: target_chroot
+        ansible_connection: community.general.chroot
+        ansible_host: "{{ install_mount_root }}"
+        ansible_python_interpreter: /usr/bin/python
+        install_username: "{{ install_username }}"
+
+- name: Validate configured target system in chroot
+  hosts: target_chroot
+  gather_facts: false
+  roles:
+    - role: postcheck

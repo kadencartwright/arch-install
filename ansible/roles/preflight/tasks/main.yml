@@ -1,0 +1,103 @@
+---
+- name: Ensure required install variables are provided
+  ansible.builtin.assert:
+    that:
+      - install_disk | length > 0
+      - install_confirm_destroy | length > 0
+      - install_confirm_destroy == install_disk
+      - install_root_password_file | length > 0
+      - install_user_password_file | length > 0
+      - install_luks_password_file | length > 0
+    fail_msg: >-
+      Required vars missing or unsafe confirmation. Set install_disk,
+      install_confirm_destroy, and all secret file vars.
+
+- name: Ensure script is run as root
+  ansible.builtin.command: id -u
+  register: current_uid
+  changed_when: false
+
+- name: Fail if current user is not root
+  ansible.builtin.assert:
+    that:
+      - current_uid.stdout == '0'
+    fail_msg: This playbook must run as root from the Arch ISO.
+
+- name: Check required host commands
+  ansible.builtin.shell: "command -v {{ item }}"
+  args:
+    executable: /bin/bash
+  register: cmd_checks
+  changed_when: false
+  failed_when: cmd_checks.rc != 0
+  loop:
+    - sgdisk
+    - cryptsetup
+    - pvcreate
+    - vgcreate
+    - lvcreate
+    - mkfs.fat
+    - mkfs.ext4
+    - pacstrap
+    - genfstab
+    - arch-chroot
+    - lsblk
+    - ansible-galaxy
+
+- name: Ensure required secret files exist
+  ansible.builtin.stat:
+    path: "{{ item }}"
+  loop:
+    - "{{ install_root_password_file }}"
+    - "{{ install_user_password_file }}"
+    - "{{ install_luks_password_file }}"
+  register: secret_files
+
+- name: Validate secret file presence
+  ansible.builtin.assert:
+    that:
+      - item.stat.exists
+      - item.stat.isreg
+    fail_msg: "Missing secret file: {{ item.stat.path | default('unknown') }}"
+  loop: "{{ secret_files.results }}"
+
+- name: Ensure community.general collection is installed
+  ansible.builtin.command: ansible-galaxy collection install -r ansible/requirements.yml
+  args:
+    chdir: "{{ playbook_dir }}/.."
+  register: galaxy_install
+  changed_when: "'Skipping' not in galaxy_install.stdout"
+
+- name: Load root password secret
+  ansible.builtin.slurp:
+    src: "{{ install_root_password_file }}"
+  register: root_password_blob
+  no_log: true
+
+- name: Load user password secret
+  ansible.builtin.slurp:
+    src: "{{ install_user_password_file }}"
+  register: user_password_blob
+  no_log: true
+
+- name: Load LUKS passphrase secret
+  ansible.builtin.slurp:
+    src: "{{ install_luks_password_file }}"
+  register: luks_password_blob
+  no_log: true
+
+- name: Store decoded secrets as runtime facts
+  ansible.builtin.set_fact:
+    install_root_password: "{{ root_password_blob.content | b64decode | trim }}"
+    install_user_password: "{{ user_password_blob.content | b64decode | trim }}"
+    install_luks_passphrase: "{{ luks_password_blob.content | b64decode | trim }}"
+  no_log: true
+
+- name: Ensure secrets are non-empty
+  ansible.builtin.assert:
+    that:
+      - install_root_password | length > 0
+      - install_user_password | length > 0
+      - install_luks_passphrase | length > 0
+    fail_msg: Secret files must not be empty.
+  no_log: true

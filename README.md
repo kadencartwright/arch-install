@@ -7,29 +7,57 @@ Current install profile:
 - systemd-boot
 - dracut
 
-## Usage
+## Usage (Ansible)
 
 Run from the Arch ISO as root:
 
 ```bash
-./install.sh
+./scripts/run-ansible-install.sh \
+  --disk /dev/vda \
+  --confirm-destroy /dev/vda \
+  --hostname arch-test \
+  --username k \
+  --timezone America/Chicago \
+  --root-password-file /tmp/root_password \
+  --user-password-file /tmp/user_password \
+  --luks-password-file /tmp/luks_password
 ```
 
-### Optional flags
+### Flags
 
 - `--disk /dev/nvme0n1`
+- `--confirm-destroy /dev/nvme0n1`
 - `--hostname myhost`
 - `--username k`
 - `--timezone America/Chicago`
-- `--confirm-destroy /dev/nvme0n1`
 - `--root-password-file /path/to/root_password`
 - `--user-password-file /path/to/user_password`
 - `--luks-password-file /path/to/luks_passphrase`
-- `--non-interactive`
+- `--disable-tpm-enroll`
 
-For non-interactive usage, provide required values plus `--confirm-destroy` with the exact disk path.
+Legacy shell installer (`./install.sh`) is still available, but Ansible is now the primary flow.
 
 ## Testing in QEMU/KVM
+
+### Get or Build Arch ISO
+
+Download from official Arch mirror infrastructure and verify:
+
+```bash
+./scripts/arch-iso.sh download
+```
+
+Build locally with `mkarchiso`:
+
+```bash
+./scripts/arch-iso.sh build
+```
+
+See options:
+
+```bash
+./scripts/arch-iso.sh --help
+```
 
 Use the VM harness to create an ephemeral test machine:
 
@@ -76,13 +104,15 @@ This script:
 - boots a headless VM (`8G` RAM, `4` vCPU, `80G` ephemeral disk)
 - mounts the repo over `9p`
 - copies to `/root/arch-install` with `rsync`
-- runs `install.sh` in non-interactive mode on `/dev/vda`
+- installs Ansible in the live ISO if needed
+- runs `scripts/run-ansible-install.sh` on `/dev/vda`
 - exits non-zero if install fails
 
 Notes:
 - Requires host packages: `qemu-system-x86_64`, `qemu-img`, `expect`, `rsync`.
 - It is best-effort and depends on serial-console behavior of the Arch ISO.
 - Use `--keep` to retain VM artifacts/logs for debugging.
+- Use `--installer shell` to run the legacy shell flow instead.
 
 ## TODO
 

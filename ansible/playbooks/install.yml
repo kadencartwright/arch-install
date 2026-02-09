@@ -1,0 +1,34 @@
+---
+- name: Provision disk and base system from live environment
+  hosts: localhost
+  gather_facts: false
+  roles:
+    - role: preflight
+    - role: disk_layout
+    - role: base_install
+
+  tasks:
+    - name: Register chroot target for subsequent plays
+      ansible.builtin.add_host:
+        name: target_chroot
+        ansible_connection: community.general.chroot
+        ansible_host: "{{ install_mount_root }}"
+        ansible_python_interpreter: /usr/bin/python
+        install_username: "{{ install_username }}"
+        install_hostname: "{{ install_hostname }}"
+        install_timezone: "{{ install_timezone }}"
+        install_root_password: "{{ install_root_password }}"
+        install_user_password: "{{ install_user_password }}"
+        install_luks_passphrase: "{{ install_luks_passphrase }}"
+        install_luks_partition: "{{ install_luks_partition }}"
+        install_enable_tpm_enroll: "{{ install_enable_tpm_enroll }}"
+      no_log: true
+
+- name: Configure installed system via chroot connection
+  hosts: target_chroot
+  gather_facts: false
+  roles:
+    - role: system_config
+    - role: boot_initramfs
+    - role: userland
+    - role: postcheck

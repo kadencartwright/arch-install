@@ -1,0 +1,58 @@
+---
+- name: Run pacstrap for base system
+  ansible.builtin.command: >-
+    pacstrap -K {{ install_mount_root }} {{ install_base_packages | join(' ') }}
+
+- name: Generate fstab
+  ansible.builtin.shell: genfstab -U {{ install_mount_root }} > {{ install_mount_root }}/etc/fstab
+  args:
+    executable: /bin/bash
+
+- name: Harden EFI mount options in fstab
+  ansible.builtin.replace:
+    path: "{{ install_mount_root }}/etc/fstab"
+    regexp: "{{ item.regexp }}"
+    replace: "{{ item.replace }}"
+  loop:
+    - { regexp: 'fmask=0022', replace: 'fmask=0137' }
+    - { regexp: 'dmask=0022', replace: 'dmask=0027' }
+
+- name: Ensure target root staging directories exist
+  ansible.builtin.file:
+    path: "{{ install_mount_root }}/{{ item }}"
+    state: directory
+    mode: '0700'
+  loop:
+    - root/cfgs
+    - root/packages
+    - root/secrets
+    - root/ansible
+
+- name: Copy package manifests
+  ansible.builtin.copy:
+    src: "{{ item.src }}"
+    dest: "{{ install_mount_root }}/{{ item.dest }}"
+    mode: '0600'
+  loop:
+    - { src: "{{ playbook_dir }}/../files/packages/wm.txt", dest: 'root/packages/wm.txt' }
+    - { src: "{{ playbook_dir }}/../files/packages/aur.txt", dest: 'root/packages/aur.txt' }
+
+- name: Copy dracut and pacman hook files
+  ansible.builtin.copy:
+    src: "{{ item.src }}"
+    dest: "{{ install_mount_root }}/{{ item.dest }}"
+    mode: '0600'
+  loop:
+    - { src: "{{ playbook_dir }}/../files/pacman-hooks/95-systemd-boot.hook", dest: 'root/cfgs/95-systemd-boot.hook' }
+    - { src: "{{ playbook_dir }}/../files/dracut/hostonly.conf", dest: 'root/cfgs/hostonly.conf' }
+    - { src: "{{ playbook_dir }}/../files/dracut/uefi.conf", dest: 'root/cfgs/uefi.conf' }
+
+- name: Write chroot install metadata
+  ansible.builtin.copy:
+    dest: "{{ install_mount_root }}/root/install-config.env"
+    mode: '0600'
+    content: |
+      HOSTNAME={{ install_hostname }}
+      USERNAME={{ install_username }}
+      TIMEZONE={{ install_timezone }}
+      LUKS_PARTITION={{ install_luks_partition }}

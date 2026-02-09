@@ -193,14 +193,14 @@ Recommended flow to make an isolated writable copy before running tests:
   rsync -a --delete /mnt/host/ /root/arch-install/
   cd /root/arch-install
 
-Then run the installer non-interactively against the VM disk:
+Then run the Ansible installer against the VM disk:
   printf 'rootpass' > /tmp/root_password
   printf 'userpass' > /tmp/user_password
   printf 'lukspass' > /tmp/luks_password
-  ./install.sh --disk /dev/vda --hostname arch-test --username k \\
-    --timezone America/Chicago --root-password-file /tmp/root_password \\
-    --user-password-file /tmp/user_password --luks-password-file /tmp/luks_password \\
-    --confirm-destroy /dev/vda --non-interactive
+  ./scripts/run-ansible-install.sh --disk /dev/vda --confirm-destroy /dev/vda \\
+    --hostname arch-test --username k --timezone America/Chicago \\
+    --root-password-file /tmp/root_password --user-password-file /tmp/user_password \\
+    --luks-password-file /tmp/luks_password
 
 INFO
 

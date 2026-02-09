@@ -1,0 +1,1 @@
+{% if luks_uuid %}rd.luks.uuid=luks-{{ luks_uuid }} {% endif %}rd.lvm.lv={{ lvm_vg_name }}/{{ lvm_lv_name }} root={{ root_source }} rootfstype={{ root_fstype }} rootflags=rw,relatime

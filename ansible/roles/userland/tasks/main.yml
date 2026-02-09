@@ -1,0 +1,73 @@
+---
+- name: Install WM packages list
+  ansible.builtin.shell: pacman -S --noconfirm --needed - < /root/packages/wm.txt
+  args:
+    executable: /bin/bash
+
+- name: Ensure /home user script and package files are present
+  ansible.builtin.copy:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    mode: "{{ item.mode }}"
+    owner: "{{ install_username }}"
+    group: "{{ install_username }}"
+  loop:
+    - { src: "{{ playbook_dir }}/../files/packages/aur.txt", dest: "/home/{{ install_username }}/aur.txt", mode: '0600' }
+
+- name: Install yay as target user
+  ansible.builtin.shell: |
+    set -euo pipefail
+    tmpdir="$(mktemp -d /tmp/yay-build.XXXXXX)"
+    trap 'rm -rf "$tmpdir"' EXIT
+    cd "$tmpdir"
+    curl -fsSL -o PKGBUILD 'https://aur.archlinux.org/cgit/aur.git/plain/PKGBUILD?h=yay'
+    sudo -u '{{ install_username }}' makepkg --syncdeps --install --noconfirm --needed
+  args:
+    executable: /bin/bash
+
+- name: Install AUR packages
+  ansible.builtin.shell: |
+    set -euo pipefail
+    sudo -u '{{ install_username }}' yay -S --noconfirm - < /home/{{ install_username }}/aur.txt
+  args:
+    executable: /bin/bash
+
+- name: Ensure user code directory exists
+  ansible.builtin.file:
+    path: "/home/{{ install_username }}/code"
+    state: directory
+    owner: "{{ install_username }}"
+    group: "{{ install_username }}"
+    mode: '0755'
+
+- name: Clone dotfiles repository
+  ansible.builtin.git:
+    repo: "{{ dotfiles_repo_url }}"
+    dest: "/home/{{ install_username }}/code/dotfiles"
+    update: true
+  become: true
+  become_user: "{{ install_username }}"
+
+- name: Clone dotman repository
+  ansible.builtin.git:
+    repo: "{{ dotman_repo_url }}"
+    dest: "/home/{{ install_username }}/code/dotman"
+    update: true
+  become: true
+  become_user: "{{ install_username }}"
+
+- name: Build dotman
+  ansible.builtin.command: make
+  args:
+    chdir: "/home/{{ install_username }}/code/dotman"
+  become: true
+  become_user: "{{ install_username }}"
+
+- name: Link dotfiles via dotman
+  ansible.builtin.command: >-
+    /home/{{ install_username }}/code/dotman/bin/dotman
+    link -f {{ dotman_manifest_path }}
+  args:
+    chdir: "/home/{{ install_username }}/code/dotfiles"
+  become: true
+  become_user: "{{ install_username }}"

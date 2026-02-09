@@ -1,0 +1,73 @@
+---
+- name: Set timezone
+  ansible.builtin.file:
+    src: "/usr/share/zoneinfo/{{ install_timezone }}"
+    dest: /etc/localtime
+    state: link
+    force: true
+
+- name: Sync hardware clock
+  ansible.builtin.command: hwclock --systohc
+  changed_when: false
+
+- name: Ensure locale is enabled
+  ansible.builtin.lineinfile:
+    path: /etc/locale.gen
+    regexp: '^#?{{ install_locale }} UTF-8$'
+    line: '{{ install_locale }} UTF-8'
+
+- name: Generate locales
+  ansible.builtin.command: locale-gen
+  changed_when: false
+
+- name: Configure locale.conf
+  ansible.builtin.copy:
+    dest: /etc/locale.conf
+    mode: '0644'
+    content: |
+      LANG={{ install_locale }}
+
+- name: Set root password
+  ansible.builtin.shell: |
+    set -euo pipefail
+    printf 'root:%s\n' '{{ install_root_password }}' | chpasswd
+  args:
+    executable: /bin/bash
+  no_log: true
+
+- name: Ensure primary user exists
+  ansible.builtin.user:
+    name: "{{ install_username }}"
+    create_home: true
+    groups: wheel
+    append: true
+    shell: /usr/bin/zsh
+
+- name: Set user password
+  ansible.builtin.shell: |
+    set -euo pipefail
+    printf '%s:%s\n' '{{ install_username }}' '{{ install_user_password }}' | chpasswd
+  args:
+    executable: /bin/bash
+  no_log: true
+
+- name: Set temporary passwordless sudo for wheel
+  ansible.builtin.copy:
+    dest: /etc/sudoers.d/wheel
+    mode: '0440'
+    content: |
+      %wheel ALL=(ALL) NOPASSWD: ALL
+
+- name: Set hostname
+  ansible.builtin.copy:
+    dest: /etc/hostname
+    mode: '0644'
+    content: |
+      {{ install_hostname }}
+
+- name: Restore wheel sudo policy
+  ansible.builtin.copy:
+    dest: /etc/sudoers.d/wheel
+    mode: '0440'
+    content: |
+      %wheel ALL=(ALL:ALL) ALL

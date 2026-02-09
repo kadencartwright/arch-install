@@ -1,0 +1,63 @@
+---
+- name: Check hostname file
+  ansible.builtin.stat:
+    path: /etc/hostname
+  register: hostname_stat
+
+- name: Check kernel cmdline file
+  ansible.builtin.stat:
+    path: /etc/kernel/cmdline
+  register: cmdline_stat
+
+- name: Check systemd boot hook
+  ansible.builtin.stat:
+    path: /etc/pacman.d/hooks/95-systemd-boot.hook
+  register: hook_stat
+
+- name: Check dracut hostonly config
+  ansible.builtin.stat:
+    path: /etc/dracut.conf.d/hostonly.conf
+  register: hostonly_stat
+
+- name: Check dracut uefi config
+  ansible.builtin.stat:
+    path: /etc/dracut.conf.d/uefi.conf
+  register: uefi_stat
+
+- name: Verify critical files exist
+  ansible.builtin.assert:
+    that:
+      - hostname_stat.stat.exists
+      - cmdline_stat.stat.exists
+      - hook_stat.stat.exists
+      - hostonly_stat.stat.exists
+      - uefi_stat.stat.exists
+    fail_msg: One or more critical boot/config files are missing.
+
+- name: Verify NetworkManager is enabled
+  ansible.builtin.command: systemctl is-enabled NetworkManager
+  register: nm_enabled
+  changed_when: false
+
+- name: Assert NetworkManager enablement
+  ansible.builtin.assert:
+    that:
+      - nm_enabled.stdout | trim == 'enabled'
+    fail_msg: NetworkManager is not enabled.
+
+- name: Verify install user exists
+  ansible.builtin.command: id {{ install_username }}
+  register: user_id_cmd
+  changed_when: false
+
+- name: Check install disk layout
+  ansible.builtin.command: lsblk -f
+  register: lsblk_output
+  changed_when: false
+
+- name: Print postcheck summary
+  ansible.builtin.debug:
+    msg:
+      - "Postcheck passed for host: {{ inventory_hostname }}"
+      - "NetworkManager: {{ nm_enabled.stdout | trim }}"
+      - "User lookup: {{ user_id_cmd.stdout | trim }}"

@@ -128,3 +128,38 @@ Set up lid-switch suspend config:
 - `HandleLidSwitch=suspend`
 - `HandleLidSwitchExternalPower=ignore`
 - `HandleLidSwitchDocked=ignore`
+
+## NixOS Migration Flow
+
+This repo now includes a NixOS port that mirrors the current Arch layout with:
+- EFI + LUKS + LVM (`vg1/root`, `vg1/home`)
+- `systemd-boot`
+- Hyprland desktop stack
+- optional TPM enrollment for LUKS
+
+Primary references:
+- `flake.nix`
+- `hosts/arch-host/default.nix`
+- `modules/`
+- `docs/nixos-migration.md`
+
+Unattended install wrapper:
+
+```bash
+./scripts/run-nixos-anywhere.sh \
+  --disk /dev/vda \
+  --confirm-destroy /dev/vda \
+  --hostname nixos-test \
+  --target root@192.168.122.50 \
+  --username k \
+  --timezone America/Chicago \
+  --root-password-file /tmp/root_password \
+  --user-password-file /tmp/user_password \
+  --luks-password-file /tmp/luks_password
+```
+
+Post-install checks:
+
+```bash
+./scripts/postinstall-check.sh --target k@192.168.122.50 --username k --hostname nixos-test
+```

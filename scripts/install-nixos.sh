@@ -384,7 +384,7 @@ printf '%s' "$LUKS_PASSWORD" > /mnt/var/lib/install/luks-passphrase
 chmod 600 /mnt/var/lib/install/luks-partition /mnt/var/lib/install/luks-passphrase
 
 log "Installing NixOS"
-nixos-install --root /mnt
+nixos-install --root /mnt --no-root-passwd
 
 log "Installation complete"
 if [[ "$DO_REBOOT" -eq 1 ]]; then

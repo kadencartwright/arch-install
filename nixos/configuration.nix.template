@@ -13,6 +13,24 @@ in
     ./hardware-configuration.nix
   ];
 
+  fileSystems."/" = lib.mkForce {
+    device = "/dev/vg1/root";
+    fsType = "ext4";
+  };
+
+  fileSystems."/home" = lib.mkForce {
+    device = "/dev/vg1/home";
+    fsType = "ext4";
+  };
+
+  fileSystems."/boot" = lib.mkForce {
+    device = "__BOOT_PARTITION__";
+    fsType = "vfat";
+    options = [ "fmask=0137" "dmask=0027" ];
+  };
+
+  swapDevices = lib.mkForce [ ];
+
   nixpkgs.config.allowUnfree = true;
 
   networking.hostName = "__HOSTNAME__";
@@ -52,6 +70,13 @@ in
     efi.canTouchEfiVariables = true;
   };
   boot.initrd.systemd.enable = true;
+  boot.initrd.luks.devices = lib.mkForce {
+    cryptlvm = {
+      device = "__LUKS_PARTITION__";
+      preLVM = true;
+      allowDiscards = true;
+    };
+  };
 
   users.mutableUsers = false;
   users.users.root.hashedPassword = "__ROOT_HASH__";

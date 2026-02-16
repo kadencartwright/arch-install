@@ -377,6 +377,8 @@ sed -i "s|__USERNAME__|${USERNAME}|g" /mnt/etc/nixos/configuration.nix
 sed -i "s|__TIMEZONE__|${TIMEZONE}|g" /mnt/etc/nixos/configuration.nix
 sed -i "s|__ROOT_HASH__|${ROOT_HASH}|g" /mnt/etc/nixos/configuration.nix
 sed -i "s|__USER_HASH__|${USER_HASH}|g" /mnt/etc/nixos/configuration.nix
+sed -i "s|__BOOT_PARTITION__|${BOOT_PARTITION}|g" /mnt/etc/nixos/configuration.nix
+sed -i "s|__LUKS_PARTITION__|${LUKS_PARTITION}|g" /mnt/etc/nixos/configuration.nix
 
 mkdir -p /mnt/var/lib/install
 printf '%s' "$LUKS_PARTITION" > /mnt/var/lib/install/luks-partition

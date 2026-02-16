@@ -8,6 +8,13 @@ let
       pkg = lib.attrByPath path null pkgs;
     in
     lib.optional (pkg != null) pkg;
+
+  tuigreetPkg =
+    let
+      direct = lib.attrByPath [ "tuigreet" ] null pkgs;
+      nested = lib.attrByPath [ "greetd" "tuigreet" ] null pkgs;
+    in
+    if direct != null then direct else nested;
 in
 {
   programs.hyprland = {
@@ -23,7 +30,7 @@ in
       settings = {
         default_session = {
           user = "greeter";
-          command = "${pkgs.tuigreet}/bin/tuigreet --time --cmd ${pkgs.hyprland}/bin/start-hyprland";
+          command = "${tuigreetPkg}/bin/tuigreet --time --cmd ${pkgs.hyprland}/bin/start-hyprland";
         };
       };
     };

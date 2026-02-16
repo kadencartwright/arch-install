@@ -22,14 +22,32 @@ in
       description = "Enable one-time TPM2 enrollment for the LUKS device.";
     };
 
+    vmTestAutoUnlock = lib.mkOption {
+      type = types.bool;
+      default = true;
+      description = "Enable initrd keyfile auto-unlock for local vm-test scenarios.";
+    };
+
     diskDevice = lib.mkOption {
       type = types.str;
       default = "/dev/vda";
       description = "Install target disk used by disko.";
     };
 
-    luksPasswordFile = lib.mkOption {
+    rootLvSize = lib.mkOption {
       type = types.str;
+      default = "50%FREE";
+      description = "Root LV size passed to disko (vm-safe default).";
+    };
+
+    homeLvSize = lib.mkOption {
+      type = types.str;
+      default = "100%FREE";
+      description = "Home LV size passed to disko.";
+    };
+
+    luksPasswordFile = lib.mkOption {
+      type = types.either types.path types.str;
       default = "/var/lib/install/luks-passphrase";
       description = "Path to one-time LUKS passphrase file used during installation.";
     };

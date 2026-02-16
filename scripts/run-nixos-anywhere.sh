@@ -172,9 +172,13 @@ trap cleanup EXIT
 
 mkdir -p "$EXTRA_FILES_DIR/var/lib/install" "$FLAKE_DIR"
 
-printf '%s' "$LUKS_PASSWORD" > "$EXTRA_FILES_DIR/var/lib/install/luks-passphrase"
+# Keep evaluation pure by staging local modules into the ephemeral flake.
+cp -a "${REPO_ROOT}/hosts" "${FLAKE_DIR}/hosts"
+cp -a "${REPO_ROOT}/modules" "${FLAKE_DIR}/modules"
+
 printf '%s' "$LUKS_PARTITION" > "$EXTRA_FILES_DIR/var/lib/install/luks-partition"
-chmod 600 "$EXTRA_FILES_DIR/var/lib/install/luks-passphrase" "$EXTRA_FILES_DIR/var/lib/install/luks-partition"
+printf '%s' "$LUKS_PASSWORD" > "$EXTRA_FILES_DIR/var/lib/install/luks-passphrase"
+chmod 600 "$EXTRA_FILES_DIR/var/lib/install/luks-partition" "$EXTRA_FILES_DIR/var/lib/install/luks-passphrase"
 
 cat >"${FLAKE_DIR}/flake.nix" <<EOF_FLAKE
 {
@@ -195,15 +199,18 @@ cat >"${FLAKE_DIR}/flake.nix" <<EOF_FLAKE
       inherit system;
       modules = [
         disko.nixosModules.disko
-        ${REPO_ROOT}/hosts/arch-host/default.nix
+        ./hosts/arch-host/default.nix
         {
           networking.hostName = "${HOSTNAME}";
 
           install.username = "${USERNAME}";
           install.timezone = "${TIMEZONE}";
           install.enableTpmEnroll = ${ENABLE_TPM_ENROLL};
+          install.vmTestAutoUnlock = false;
           install.diskDevice = "${DISK}";
-          install.luksPasswordFile = "/var/lib/install/luks-passphrase";
+          install.rootLvSize = "80G";
+          install.homeLvSize = "100%FREE";
+          install.luksPasswordFile = "/tmp/luks-passphrase";
 
           users.users.root.hashedPassword = "${ROOT_HASH}";
           users.users.${USERNAME}.hashedPassword = "${USER_HASH}";
@@ -216,12 +223,15 @@ EOF_FLAKE
 
 NIXOS_ANYWHERE_CMD=(
   nix
+  --extra-experimental-features
+  "nix-command flakes"
   run
   github:nix-community/nixos-anywhere
   --
   --flake "${FLAKE_DIR}#${HOSTNAME}"
-  --target-host "$TARGET"
+  --disk-encryption-keys "/tmp/luks-passphrase" "$LUKS_PASSWORD_FILE"
   --extra-files "$EXTRA_FILES_DIR"
+  "$TARGET"
 )
 
 if [[ "$DRY_RUN" -eq 1 ]]; then
@@ -234,4 +244,7 @@ if [[ "$DRY_RUN" -eq 1 ]]; then
 fi
 
 log "Starting unattended install for host ${HOSTNAME} on ${TARGET}"
+printf '[nixos-anywhere] Command: '
+printf '%q ' "${NIXOS_ANYWHERE_CMD[@]}"
+printf '\n'
 "${NIXOS_ANYWHERE_CMD[@]}"

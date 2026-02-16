@@ -10,7 +10,11 @@ let
     lib.optional (pkg != null) pkg;
 in
 {
-  programs.hyprland.enable = true;
+  programs.hyprland = {
+    enable = true;
+    xwayland.enable = true;
+    portalPackage = pkgs.xdg-desktop-portal-hyprland;
+  };
 
   services = {
     displayManager.gdm.enable = false;
@@ -19,7 +23,7 @@ in
       settings = {
         default_session = {
           user = "greeter";
-          command = "${pkgs.greetd.tuigreet}/bin/tuigreet --time --cmd Hyprland";
+          command = "${pkgs.tuigreet}/bin/tuigreet --time --cmd ${pkgs.hyprland}/bin/start-hyprland";
         };
       };
     };
@@ -36,8 +40,9 @@ in
 
   hardware = {
     bluetooth.enable = true;
-    pulseaudio.enable = false;
   };
+
+  services.pulseaudio.enable = false;
 
   security.polkit.enable = true;
 

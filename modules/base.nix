@@ -3,6 +3,10 @@ let
   cfg = config.install;
 in
 {
+  nixpkgs.config.allowUnfree = true;
+
+  hardware.enableRedistributableFirmware = true;
+
   time.timeZone = cfg.timezone;
 
   i18n.defaultLocale = "en_US.UTF-8";
@@ -11,7 +15,12 @@ in
     keyMap = "us";
   };
 
-  networking.networkmanager.enable = true;
+  networking.networkmanager = {
+    enable = true;
+    wifi.backend = "iwd";
+  };
+
+  networking.wireless.iwd.enable = true;
 
   services = {
     openssh.enable = true;
@@ -22,6 +31,7 @@ in
     git
     neovim
     go
+    gnumake
     python3
     ripgrep
   ];

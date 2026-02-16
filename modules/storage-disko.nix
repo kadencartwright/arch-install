@@ -1,6 +1,7 @@
 { config, ... }:
 let
   cfg = config.install;
+  luksPasswordFilePath = toString cfg.luksPasswordFile;
 in
 {
   disko.devices = {
@@ -27,7 +28,7 @@ in
             content = {
               type = "luks";
               name = "cryptlvm";
-              passwordFile = cfg.luksPasswordFile;
+              passwordFile = luksPasswordFilePath;
               settings = {
                 allowDiscards = true;
               };
@@ -45,7 +46,7 @@ in
       type = "lvm_vg";
       lvs = {
         root = {
-          size = "80G";
+          size = cfg.rootLvSize;
           content = {
             type = "filesystem";
             format = "ext4";
@@ -54,7 +55,7 @@ in
         };
 
         home = {
-          size = "100%FREE";
+          size = cfg.homeLvSize;
           content = {
             type = "filesystem";
             format = "ext4";

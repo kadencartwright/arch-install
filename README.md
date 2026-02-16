@@ -163,3 +163,49 @@ Post-install checks:
 ```bash
 ./scripts/postinstall-check.sh --target k@192.168.122.50 --username k --hostname nixos-test
 ```
+
+## Simple NixOS Install (No Flakes)
+
+If you want a classic `/etc/nixos/configuration.nix` workflow:
+
+1. Boot NixOS installer ISO
+2. Prepare secret files (`root`, `user`, `luks`) on the live system
+3. Run one script from this repo
+
+Example from a checked-out repo on the ISO environment:
+
+```bash
+./scripts/install-nixos.sh \
+  --disk /dev/nvme0n1 \
+  --confirm-destroy /dev/nvme0n1 \
+  --hostname twi-carbon \
+  --username k \
+  --timezone America/Chicago \
+  --root-password-file /tmp/install-secrets/root_password \
+  --user-password-file /tmp/install-secrets/user_password \
+  --luks-password-file /tmp/install-secrets/luks_password \
+  --reboot
+```
+
+Install behavior:
+- prompts interactively for missing values via `gum` (auto-installs `gum` if missing)
+- partitions disk as EFI + LUKS + LVM (`vg1/root`, `vg1/home`)
+- generates `hardware-configuration.nix`
+- writes `/etc/nixos/configuration.nix` from `nixos/configuration.nix.template`
+- runs `nixos-install`
+
+After boot, updates are standard:
+
+```bash
+cd /etc/nixos
+sudo git pull
+sudo nixos-rebuild switch
+```
+
+Remote one-liner from ISO (replace repo URL):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/<you>/<repo>/main/scripts/install-nixos.sh -o /tmp/install-nixos.sh && \
+chmod +x /tmp/install-nixos.sh && \
+/tmp/install-nixos.sh --help
+```

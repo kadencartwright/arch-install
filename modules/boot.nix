@@ -21,6 +21,12 @@ in
         "dm_crypt"
         "dm_mod"
       ];
+      luks.devices.cryptlvm = lib.mkIf cfg.vmTestAutoUnlock {
+        keyFile = "/crypto_keyfile.bin";
+      };
+      secrets = lib.mkIf cfg.vmTestAutoUnlock {
+        "/crypto_keyfile.bin" = pkgs.writeText "vm-test-luks-key" "nixos-vm-test-passphrase";
+      };
     };
   };
 
@@ -39,6 +45,7 @@ in
         pass_file="/var/lib/install/luks-passphrase"
 
         if [ ! -r "$part_file" ] || [ ! -r "$pass_file" ]; then
+          echo "tpm2-luks-enroll: missing $part_file or $pass_file, skipping enrollment" >&2
           exit 0
         fi
 

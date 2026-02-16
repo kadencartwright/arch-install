@@ -1,4 +1,12 @@
 { config, pkgs, lib, ... }:
+let
+  tuigreetPkg =
+    let
+      direct = lib.attrByPath [ "tuigreet" ] null pkgs;
+      nested = lib.attrByPath [ "greetd" "tuigreet" ] null pkgs;
+    in
+    if direct != null then direct else nested;
+in
 
 {
   imports = [
@@ -83,7 +91,7 @@
     settings = {
       default_session = {
         user = "greeter";
-        command = "${pkgs.tuigreet}/bin/tuigreet --time --cmd ${pkgs.hyprland}/bin/start-hyprland";
+        command = "${tuigreetPkg}/bin/tuigreet --time --cmd ${pkgs.hyprland}/bin/start-hyprland";
       };
     };
   };

@@ -174,3 +174,24 @@ curl -fsSL https://raw.githubusercontent.com/<you>/<repo>/main/scripts/install-n
 chmod +x /tmp/install-nixos.sh && \
 /tmp/install-nixos.sh --help
 ```
+
+### VM Safety Test Harness (NixOS ISO)
+
+Run the installer end-to-end in a disposable QEMU/KVM VM:
+
+```bash
+./scripts/run-nixos-vm-ci-test.sh --iso /path/to/nixos-installer.iso
+```
+
+What it does:
+- creates an ephemeral qcow2 disk
+- boots NixOS ISO headless (`expect` + serial console)
+- mounts this repo into guest via `9p`
+- runs `scripts/install-nixos.sh --non-interactive` against `/dev/vda`
+- verifies `/mnt/etc/nixos/configuration.nix` and encrypted disk metadata
+- powers off and exits non-zero on failure
+
+Useful options:
+- `--disk-size 120G` (default)
+- `--keep` (preserve VM temp dir/logs for debugging)
+- `--timeout 7200`

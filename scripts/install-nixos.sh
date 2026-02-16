@@ -22,6 +22,7 @@ Options:
   --repo-url URL             Git repo URL for /etc/nixos
   --repo-ref REF             Git branch/tag/commit (default: main)
   --reboot                   Reboot automatically after install
+  --non-interactive          Fail instead of prompting for missing inputs
   --help                     Show help
 
 If values are omitted, the script prompts interactively using gum.
@@ -184,6 +185,8 @@ LUKS_PASSWORD_FILE=""
 REPO_URL=""
 REPO_REF="main"
 DO_REBOOT=0
+REBOOT_SET=0
+NON_INTERACTIVE=0
 
 while (($# > 0)); do
   case "$1" in
@@ -208,7 +211,9 @@ while (($# > 0)); do
     --repo-ref)
       REPO_REF="${2:-}"; shift 2 ;;
     --reboot)
-      DO_REBOOT=1; shift ;;
+      DO_REBOOT=1; REBOOT_SET=1; shift ;;
+    --non-interactive)
+      NON_INTERACTIVE=1; shift ;;
     --help|-h)
       usage; exit 0 ;;
     *)
@@ -222,20 +227,25 @@ require_cmd lsblk
 ensure_gum
 
 if [[ -z "$DISK" ]]; then
+  [[ "$NON_INTERACTIVE" -eq 0 ]] || die "--disk is required in --non-interactive mode"
   DISK="$(choose_disk)"
 fi
 [[ -b "$DISK" ]] || die "Disk not found: $DISK"
 
 if [[ -z "$HOSTNAME" ]]; then
+  [[ "$NON_INTERACTIVE" -eq 0 ]] || die "--hostname is required in --non-interactive mode"
   HOSTNAME="$(prompt_input "Hostname")"
 fi
 
-USERNAME="$(prompt_input "Username" "$USERNAME")"
-TIMEZONE="$(prompt_input "Timezone" "$TIMEZONE")"
+if [[ "$NON_INTERACTIVE" -eq 0 ]]; then
+  USERNAME="$(prompt_input "Username" "$USERNAME")"
+  TIMEZONE="$(prompt_input "Timezone" "$TIMEZONE")"
+fi
 
 if [[ -n "$CONFIRM_DESTROY" ]]; then
   [[ "$CONFIRM_DESTROY" == "$DISK" ]] || die "--confirm-destroy must match --disk"
 else
+  [[ "$NON_INTERACTIVE" -eq 0 ]] || die "--confirm-destroy is required in --non-interactive mode"
   prompt_confirm_destroy "$DISK"
 fi
 
@@ -247,6 +257,7 @@ if [[ -n "$ROOT_PASSWORD_FILE" ]]; then
   [[ -f "$ROOT_PASSWORD_FILE" ]] || die "Root password file not found"
   ROOT_PASSWORD="$(<"$ROOT_PASSWORD_FILE")"
 else
+  [[ "$NON_INTERACTIVE" -eq 0 ]] || die "--root-password-file is required in --non-interactive mode"
   ROOT_PASSWORD="$(prompt_password "Root password")"
 fi
 
@@ -254,6 +265,7 @@ if [[ -n "$USER_PASSWORD_FILE" ]]; then
   [[ -f "$USER_PASSWORD_FILE" ]] || die "User password file not found"
   USER_PASSWORD="$(<"$USER_PASSWORD_FILE")"
 else
+  [[ "$NON_INTERACTIVE" -eq 0 ]] || die "--user-password-file is required in --non-interactive mode"
   USER_PASSWORD="$(prompt_password "User password (${USERNAME})")"
 fi
 
@@ -261,6 +273,7 @@ if [[ -n "$LUKS_PASSWORD_FILE" ]]; then
   [[ -f "$LUKS_PASSWORD_FILE" ]] || die "LUKS password file not found"
   LUKS_PASSWORD="$(<"$LUKS_PASSWORD_FILE")"
 else
+  [[ "$NON_INTERACTIVE" -eq 0 ]] || die "--luks-password-file is required in --non-interactive mode"
   LUKS_PASSWORD="$(prompt_password "LUKS passphrase")"
 fi
 
@@ -269,7 +282,7 @@ fi
 [[ -n "$LUKS_PASSWORD" ]] || die "LUKS passphrase is empty"
 
 if [[ -z "$REPO_URL" ]]; then
-  if have_cmd gum; then
+  if [[ "$NON_INTERACTIVE" -eq 0 ]] && have_cmd gum; then
     repo_mode="$(printf '%s\n' "Use local checkout" "Clone from git URL" | gum choose --header "NixOS config source")"
     if [[ "$repo_mode" == "Clone from git URL" ]]; then
       REPO_URL="$(prompt_input "Repo URL")"
@@ -278,7 +291,7 @@ if [[ -z "$REPO_URL" ]]; then
   fi
 fi
 
-if have_cmd gum; then
+if [[ "$NON_INTERACTIVE" -eq 0 ]] && [[ "$REBOOT_SET" -eq 0 ]] && have_cmd gum; then
   if gum confirm "Reboot automatically after installation?"; then
     DO_REBOOT=1
   else

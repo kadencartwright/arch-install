@@ -1,5 +1,10 @@
 { config, pkgs, lib, ... }:
 let
+  unstable = import (builtins.fetchTarball "https://github.com/NixOS/nixpkgs/archive/nixos-unstable.tar.gz") {
+    system = pkgs.system;
+    config.allowUnfree = true;
+  };
+
   tuigreetPkg =
     let
       direct = lib.attrByPath [ "tuigreet" ] null pkgs;
@@ -93,14 +98,15 @@ in
   programs.hyprland = {
     enable = true;
     xwayland.enable = true;
-    portalPackage = pkgs.xdg-desktop-portal-hyprland;
+    package = unstable.hyprland;
+    portalPackage = unstable.xdg-desktop-portal-hyprland;
   };
   programs.thunar.enable = true;
 
   xdg.portal = {
     enable = true;
     xdgOpenUsePortal = true;
-    extraPortals = [ pkgs.xdg-desktop-portal-gtk pkgs.xdg-desktop-portal-hyprland ];
+    extraPortals = [ pkgs.xdg-desktop-portal-gtk unstable.xdg-desktop-portal-hyprland ];
   };
 
   services.greetd = {

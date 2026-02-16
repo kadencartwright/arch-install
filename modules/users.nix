@@ -7,6 +7,7 @@ in
 
   users.users.${username} = {
     isNormalUser = true;
+    createHome = true;
     description = username;
     extraGroups = [
       "wheel"

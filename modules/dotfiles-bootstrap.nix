@@ -15,7 +15,6 @@ in
     serviceConfig = {
       Type = "oneshot";
       User = username;
-      Group = username;
       WorkingDirectory = homeDir;
     };
     script = ''

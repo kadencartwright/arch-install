@@ -82,6 +82,7 @@ in
   users.users.root.hashedPassword = "__ROOT_HASH__";
   users.users.__USERNAME__ = {
     isNormalUser = true;
+    createHome = true;
     description = "__USERNAME__";
     extraGroups = [ "wheel" "networkmanager" "audio" "video" "input" ];
     shell = pkgs.zsh;
@@ -107,7 +108,7 @@ in
     settings = {
       default_session = {
         user = "greeter";
-        command = "${tuigreetPkg}/bin/tuigreet --time --cmd ${pkgs.hyprland}/bin/start-hyprland";
+        command = "${tuigreetPkg}/bin/tuigreet --time --cmd ${pkgs.hyprland}/bin/Hyprland";
       };
     };
   };
@@ -134,6 +135,7 @@ in
     python3
     ripgrep
     alacritty
+    kitty
     btop
     brightnessctl
     chromium
@@ -173,7 +175,6 @@ in
     serviceConfig = {
       Type = "oneshot";
       User = "__USERNAME__";
-      Group = "__USERNAME__";
       WorkingDirectory = "/home/__USERNAME__";
     };
     script = ''

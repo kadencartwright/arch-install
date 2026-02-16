@@ -30,7 +30,7 @@ in
       settings = {
         default_session = {
           user = "greeter";
-          command = "${tuigreetPkg}/bin/tuigreet --time --cmd ${pkgs.hyprland}/bin/start-hyprland";
+          command = "${tuigreetPkg}/bin/tuigreet --time --cmd ${pkgs.hyprland}/bin/Hyprland";
         };
       };
     };

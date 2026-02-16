@@ -79,6 +79,7 @@ in
     xwayland.enable = true;
     portalPackage = pkgs.xdg-desktop-portal-hyprland;
   };
+  programs.thunar.enable = true;
 
   xdg.portal = {
     enable = true;
@@ -146,7 +147,6 @@ in
     tpm2-tss
     bitwarden-desktop
     hyprpolkitagent
-    thunar
   ];
 
   systemd.services.dotfiles-bootstrap = {

@@ -1,23 +1,48 @@
 # Arch Install Scripts
 
-This repository contains helper scripts to configure new arch linux machines
+Automation scripts for installing Arch Linux with:
 
-It uses 
-- LUKS on lvm
+- LUKS on LVM
 - systemd-boot
 - dracut
-## TODO:
-set up tpm auto unlocking
-    - use systemd-cryptenroll
-        - sudo systemd-cryptenroll --wipe-slot tpm2 --tpm2-device auto $LUKS_PARTITION
-    - set dracut to use the following options
-            add_dracutmodules+=" tpm2-tss crypt "
-            add_modules+=" tpm2-tss crypt "
-set up uki gen
-    - yay -S dracut-ukify 
-Set up lid switch suspend config
-- /etc/systemd/logind.conf
-        HandleLidSwitch=suspend
-        HandleLidSwitchExternalPower=ignore
-        HandleLidSwitchDocked=ignore
 
+All scripts are Bash-only (`#!/usr/bin/env bash`) and use strict mode.
+
+## `install.sh` options
+
+```bash
+./install.sh \
+  --disk /dev/nvme0n1 \
+  --hostname my-host \
+  --username k \
+  --timezone America/Chicago
+```
+
+Supported flags:
+
+- `--disk <path>`
+- `--hostname <name>`
+- `--username <name>` (default: `k`)
+- `--timezone <tz>` (default: `America/Chicago`)
+- `--confirm-destroy` (skip typed destructive confirmation)
+- `--root-password-file <path>`
+- `--user-password-file <path>`
+- `--luks-passphrase-file <path>`
+- `--non-interactive`
+- `--dry-run`
+
+## Safety behavior
+
+- Requires explicit destructive confirmation before disk wipe (unless `--confirm-destroy` is passed).
+- Unmounts all target-disk partitions and disables swap for them before formatting.
+- Uses deterministic partition naming for SATA/NVMe/MMC devices.
+- Uses root-only secret handoff files for chroot stage and removes them on exit.
+- Temporarily grants wheel `NOPASSWD` for post-install user actions and restores sudoers on exit.
+
+## Supply-chain notes
+
+- `install-yay.sh` and `install-dotfiles.sh` support ref pinning through env vars:
+  - `YAY_REF`
+  - `DOTFILES_REF`
+  - `DOTMAN_REF`
+- If refs are not set, scripts log explicit unpinned-source warnings.

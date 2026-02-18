@@ -122,7 +122,7 @@ locale-gen
 printf 'LANG=en_US.UTF-8\n' >/etc/locale.conf
 
 log "Installing graphical environment packages"
-pacman -S --needed --noconfirm - < /root/packages/wm.txt
+( umask 022; pacman -S --needed --noconfirm - < /root/packages/wm.txt )
 
 log "Configuring root password"
 printf 'root:%s\n' "$ROOT_PASSWORD" | chpasswd

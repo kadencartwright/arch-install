@@ -124,6 +124,7 @@ partition_path() {
 ensure_disk_partitions_unmounted() {
     local disk="$1"
     local part
+    local target
 
     mapfile -t disk_parts < <(lsblk -lnpo NAME,TYPE "$disk" | awk '$2 == "part" { print $1 }')
     if [[ ${#disk_parts[@]} -eq 0 ]]; then
@@ -131,9 +132,12 @@ ensure_disk_partitions_unmounted() {
     fi
 
     for part in "${disk_parts[@]}"; do
-        if findmnt -rn "$part" >/dev/null 2>&1; then
-            log "Unmounting ${part} before formatting"
-            run umount -R "$part"
+        mapfile -t mount_targets < <(findmnt -S "$part" -o TARGET -rn 2>/dev/null | sort -r)
+        if [[ ${#mount_targets[@]} -gt 0 ]]; then
+            for target in "${mount_targets[@]}"; do
+                log "Unmounting ${target} (source ${part}) before formatting"
+                run umount "$target"
+            done
         fi
 
         if swapon --show=NAME --noheadings 2>/dev/null | grep -Fxq "$part"; then
@@ -143,12 +147,54 @@ ensure_disk_partitions_unmounted() {
     done
 
     for part in "${disk_parts[@]}"; do
-        if findmnt -rn "$part" >/dev/null 2>&1; then
+        if findmnt -S "$part" -rn >/dev/null 2>&1; then
             fatal "Partition is still mounted: ${part}"
         fi
 
         if swapon --show=NAME --noheadings 2>/dev/null | grep -Fxq "$part"; then
             fatal "Partition is still active swap: ${part}"
+        fi
+    done
+}
+
+deactivate_existing_luks_stack() {
+    local partition="$1"
+    local mapper
+    local mapper_name
+    local child
+    local target
+    local vg
+
+    [[ -b "$partition" ]] || return 0
+
+    mapfile -t crypt_mappers < <(lsblk -lnpo NAME,TYPE "$partition" | awk '$2 == "crypt" { print $1 }')
+    if [[ ${#crypt_mappers[@]} -eq 0 ]]; then
+        return 0
+    fi
+
+    for mapper in "${crypt_mappers[@]}"; do
+        mapper_name="${mapper##*/}"
+
+        mapfile -t mapper_children < <(lsblk -lnpo NAME,TYPE "$mapper" | awk '$2 == "lvm" || $2 == "part" { print $1 }')
+        for child in "${mapper_children[@]}"; do
+            mapfile -t child_mount_targets < <(findmnt -S "$child" -o TARGET -rn 2>/dev/null | sort -r)
+            for target in "${child_mount_targets[@]}"; do
+                log "Unmounting ${target} (source ${child}) before closing ${mapper_name}"
+                run umount "$target"
+            done
+        done
+
+        if command -v pvs >/dev/null 2>&1; then
+            mapfile -t mapper_vgs < <(pvs --noheadings -o vg_name "$mapper" 2>/dev/null | tr -d ' ' | sed '/^$/d' | sort -u)
+            for vg in "${mapper_vgs[@]}"; do
+                log "Deactivating existing volume group ${vg} on ${mapper_name}"
+                run vgchange -an "$vg"
+            done
+        fi
+
+        if cryptsetup status "$mapper_name" >/dev/null 2>&1; then
+            log "Closing existing crypt mapping ${mapper_name}"
+            run cryptsetup close "$mapper_name"
         fi
     done
 }
@@ -219,6 +265,7 @@ done
 require_cmd lsblk
 require_cmd sgdisk
 require_cmd cryptsetup
+require_cmd vgchange
 require_cmd pvcreate
 require_cmd vgcreate
 require_cmd lvcreate
@@ -249,6 +296,14 @@ if [[ -z "$DISK" ]]; then
 fi
 
 [[ -b "$DISK" ]] || fatal "Disk path is not a block device: $DISK"
+
+if (( DRY_RUN == 0 )); then
+    PRE_LUKS_PARTITION="$(partition_path "$DISK" 2)"
+    log "Ensuring selected disk partitions are unmounted: ${DISK}"
+    ensure_disk_partitions_unmounted "$DISK"
+    deactivate_existing_luks_stack "$PRE_LUKS_PARTITION"
+    ensure_disk_partitions_unmounted "$DISK"
+fi
 
 if [[ -z "$HOSTNAME" ]]; then
     if (( NON_INTERACTIVE )); then
@@ -312,7 +367,26 @@ fi
 log "Partitioning disk ${DISK}"
 ensure_disk_partitions_unmounted "$DISK"
 run sgdisk --clear -n 1:0:+1G -t 1:ef00 -n 2:0:+0 -t 2:8e00 "$DISK"
-run partprobe "$DISK"
+
+if ! run partprobe "$DISK"; then
+    warn "partprobe reported an issue re-reading the partition table for ${DISK}"
+fi
+if command -v blockdev >/dev/null 2>&1; then
+    run blockdev --rereadpt "$DISK" || true
+fi
+if command -v partx >/dev/null 2>&1; then
+    run partx -u "$DISK" || true
+fi
+if command -v udevadm >/dev/null 2>&1; then
+    run udevadm settle || true
+fi
+
+for _ in {1..10}; do
+    if [[ -b "$BOOT_PARTITION" && -b "$LUKS_PARTITION" ]]; then
+        break
+    fi
+    sleep 1
+done
 
 [[ -b "$BOOT_PARTITION" ]] || fatal "Boot partition not found: $BOOT_PARTITION"
 [[ -b "$LUKS_PARTITION" ]] || fatal "LUKS partition not found: $LUKS_PARTITION"

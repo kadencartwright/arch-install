@@ -11,7 +11,7 @@ attempt=1
 max_attempts=3
 
 while (( attempt <= max_attempts )); do
-    if pacstrap -K /mnt base linux base-devel linux-firmware lvm2 neovim git networkmanager amd-ucode intel-ucode man-db man-pages dracut bluez bluez-utils rpcbind go; then
+    if ( umask 022; pacstrap -K /mnt base linux base-devel linux-firmware lvm2 neovim git networkmanager amd-ucode intel-ucode man-db man-pages dracut bluez bluez-utils rpcbind go ); then
         log "Pacstrap completed"
         exit 0
     fi

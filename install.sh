@@ -77,7 +77,7 @@ ensure_gum_available() {
     fi
 
     log "gum not found; installing gum"
-    run pacman -S --needed --noconfirm gum
+    run pacman -Sy --needed --noconfirm gum
     command -v gum >/dev/null 2>&1 || fatal "Failed to install gum"
 }
 

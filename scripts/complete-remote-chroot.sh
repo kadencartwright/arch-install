@@ -20,7 +20,7 @@ set -euo pipefail
 source /root/.arch-installer-config
 
 chmod 755 /etc
-chmod 755 /var/cache/pacman /var/lib/pacman /var/lib/pacman/local
+chmod 755 /var/cache/pacman /var/cache/pacman/pkg /var/lib/pacman /var/lib/pacman/local
 chmod -R a+rX /var/lib/pacman/local
 
 printf '%%wheel ALL=(ALL) NOPASSWD: ALL\n' >/etc/sudoers.d/wheel

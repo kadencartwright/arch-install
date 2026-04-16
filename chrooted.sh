@@ -40,6 +40,12 @@ require_cmd() {
     command -v "$cmd" >/dev/null 2>&1 || fatal "Required command not found: $cmd"
 }
 
+normalize_pacman_permissions() {
+    mkdir -p /var/cache/pacman/pkg /var/lib/pacman/local
+    chmod 755 /etc /var/cache/pacman /var/cache/pacman/pkg /var/lib/pacman /var/lib/pacman/local
+    chmod -R a+rX /var/lib/pacman/local
+}
+
 cleanup() {
     if (( SUDOERS_MODIFIED )); then
         if [[ -n "$WHEEL_BACKUP" && -f "$WHEEL_BACKUP" ]]; then
@@ -111,6 +117,8 @@ require_cmd chpasswd
 require_cmd useradd
 require_cmd usermod
 require_cmd systemctl
+
+normalize_pacman_permissions
 
 log "Setting timezone to ${TIMEZONE}"
 ln -sf "/usr/share/zoneinfo/${TIMEZONE}" /etc/localtime
@@ -189,8 +197,6 @@ else
 fi
 
 ln -sf /dev/null /etc/pacman.d/hooks/90-dracut-install.hook
-dracut --regenerate-all
-
 ROOT_SOURCE="$(findmnt / -n -o SOURCE)"
 ROOT_FSTYPE="$(findmnt / -n -o FSTYPE)"
 LVM_PAIR="$(lvs --noheadings -o vg_name,lv_name --separator '/' "$ROOT_SOURCE" | tr -d ' ')"
@@ -213,6 +219,9 @@ mkdir -p /etc/kernel
 printf '%s\n' "$CMDLINE" >/etc/kernel/cmdline
 
 log "Generated kernel cmdline: ${CMDLINE}"
+
+mkdir -p /boot/EFI/Linux
+dracut --regenerate-all
 
 systemctl enable NetworkManager
 log "Chroot configuration completed"

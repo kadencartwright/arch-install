@@ -34,4 +34,5 @@ else
 fi
 
 make -C "$DOTMAN_DIR"
-"$DOTMAN_DIR/bin/dotman" link -c "$DOTFILES_DIR/dotman.toml"
+cd "$DOTFILES_DIR"
+"$DOTMAN_DIR/bin/dotman" link -c dotman.toml

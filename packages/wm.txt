@@ -3,6 +3,7 @@ bitwarden
 brightnessctl
 btop
 chromium
+vivaldi
 fprintd
 fuzzel
 gnome-keyring

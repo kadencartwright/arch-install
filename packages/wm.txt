@@ -12,6 +12,7 @@ hyprland
 hyprlock
 hyprpaper
 hyprpolkitagent
+hyprpicker
 hyprshot
 libfprint
 luarocks

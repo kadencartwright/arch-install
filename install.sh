@@ -326,20 +326,15 @@ printf '%s' "$LUKS_PASSPHRASE" | cryptsetup open "$LUKS_PARTITION" cryptlvm --ke
 
 VG_NAME="vg1"
 VG_ROOT_NAME="root"
-VG_HOME_NAME="home"
 VG_ROOT_PATH="/dev/${VG_NAME}/${VG_ROOT_NAME}"
-VG_HOME_PATH="/dev/${VG_NAME}/${VG_HOME_NAME}"
 
 run pvcreate /dev/mapper/cryptlvm
 run vgcreate "$VG_NAME" /dev/mapper/cryptlvm
-run lvcreate -L 80G "$VG_NAME" -n "$VG_ROOT_NAME"
-run lvcreate -l 100%FREE "$VG_NAME" -n "$VG_HOME_NAME"
+run lvcreate -l 100%FREE "$VG_NAME" -n "$VG_ROOT_NAME"
 
 run mkfs.ext4 -m 1 "$VG_ROOT_PATH"
-run mkfs.ext4 -m 1 "$VG_HOME_PATH"
 
 run mount --mkdir "$VG_ROOT_PATH" /mnt
-run mount --mkdir "$VG_HOME_PATH" /mnt/home
 run mount --mkdir "$BOOT_PARTITION" /mnt/boot
 
 "${SCRIPT_DIR}/pacstrap.sh"

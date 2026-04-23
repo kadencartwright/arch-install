@@ -3,6 +3,7 @@
 Automation scripts for installing Arch Linux with:
 
 - LUKS on LVM
+- A single ext4 root filesystem that also contains `/home`
 - systemd-boot
 - dracut
 

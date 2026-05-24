@@ -2,7 +2,7 @@
 
 set -euo pipefail
 IFS=$'\n\t'
-umask 077
+umask 022
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
@@ -355,7 +355,7 @@ run mkfs.ext4 -m 1 "$VG_ROOT_PATH"
 run mount --mkdir "$VG_ROOT_PATH" /mnt
 run mount --mkdir "$BOOT_PARTITION" /mnt/boot
 
-"${SCRIPT_DIR}/pacstrap.sh"
+bash "${SCRIPT_DIR}/pacstrap.sh"
 
 genfstab -U /mnt >> /mnt/etc/fstab
 sed -i 's/fmask=0022/fmask=0137/' /mnt/etc/fstab

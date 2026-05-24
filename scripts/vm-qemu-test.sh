@@ -73,14 +73,27 @@ ensure_sudo() {
 detect_ovmf_file() {
     local basename="$1"
     local candidate
-    for candidate in \
-        "/usr/share/edk2/x64/${basename}" \
-        "/usr/share/edk2-ovmf/x64/${basename}" \
-        "/usr/share/OVMF/${basename}"; do
-        if [[ -f "$candidate" ]]; then
-            printf '%s' "$candidate"
-            return 0
-        fi
+    local alternates=("$basename")
+    local dir
+    local name
+
+    case "$basename" in
+        OVMF_CODE.fd)
+            alternates+=(OVMF_CODE.4m.fd OVMF.4m.fd OVMF.fd)
+            ;;
+        OVMF_VARS.fd)
+            alternates+=(OVMF_VARS.4m.fd)
+            ;;
+    esac
+
+    for dir in /usr/share/edk2/x64 /usr/share/edk2-ovmf/x64 /usr/share/OVMF; do
+        for name in "${alternates[@]}"; do
+            candidate="${dir}/${name}"
+            if [[ -f "$candidate" ]]; then
+                printf '%s' "$candidate"
+                return 0
+            fi
+        done
     done
     return 1
 }
@@ -120,6 +133,7 @@ prepare_profile() {
         --exclude 'result' \
         --exclude 'result-*' \
         "${REPO_ROOT}/" "${airootfs}/root/arch-install/"
+    find "${airootfs}/root/arch-install" -type f -name '*.sh' -exec chmod 0755 {} +
 
     install -d -m 0755 "${airootfs}/etc/systemd/system/multi-user.target.wants"
     install -d -m 0755 "${airootfs}/etc/systemd/system" "${airootfs}/root"
@@ -129,10 +143,11 @@ prepare_profile() {
 Description=Run arch-install VM smoke test
 Wants=network-online.target
 After=network-online.target
+OnFailure=arch-install-vm-debug.service
 
 [Service]
 Type=oneshot
-ExecStart=/root/run-arch-install-vm.sh
+ExecStart=/usr/bin/bash /root/run-arch-install-vm.sh
 StandardOutput=journal+console
 StandardError=journal+console
 
@@ -140,12 +155,23 @@ StandardError=journal+console
 WantedBy=multi-user.target
 EOF
 
+    cat >"${airootfs}/etc/systemd/system/arch-install-vm-debug.service" <<'EOF'
+[Unit]
+Description=Print arch-install VM smoke test failure details
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/bash -lc 'systemctl status arch-install-vm.service --no-pager || true; journalctl -u arch-install-vm.service --no-pager -n 200 || true'
+StandardOutput=journal+console
+StandardError=journal+console
+EOF
+
     ln -s ../arch-install-vm.service "${airootfs}/etc/systemd/system/multi-user.target.wants/arch-install-vm.service"
 
     cat >"${airootfs}/root/run-arch-install-vm.sh" <<EOF
 #!/usr/bin/env bash
 set -euo pipefail
-exec > >(tee -a /root/arch-install-vm.log /dev/ttyS0) 2>&1
+exec > >(tee -a /root/arch-install-vm.log) 2>&1
 
 echo "ARCH_INSTALL_VM_START"
 systemctl start NetworkManager || true
@@ -162,7 +188,7 @@ chmod 0600 /root/arch-install-vm-secrets/*
 
 cd /root/arch-install
 vm_extra_args=(${rendered_skip_args})
-./install.sh \\
+bash ./install.sh \\
     --disk /dev/vda \\
     --hostname arch-vm \\
     --username k \\
@@ -226,6 +252,27 @@ prepare_qemu_state() {
     fi
 }
 
+prepare_iso_direct_boot() {
+    require_cmd bsdtar
+
+    local iso_path="${VM_DIR}/arch-install-autoinstall.iso"
+    local boot_dir="${VM_DIR}/direct-boot"
+    local loader_entry="loader/entries/01-archiso-linux.conf"
+    local options
+
+    [[ -f "$iso_path" ]] || fatal "Missing autoinstall ISO: ${iso_path}"
+
+    rm -rf "$boot_dir"
+    mkdir -p "$boot_dir"
+    bsdtar -xOf "$iso_path" arch/boot/x86_64/vmlinuz-linux >"${boot_dir}/vmlinuz-linux"
+    bsdtar -xOf "$iso_path" arch/boot/x86_64/initramfs-linux.img >"${boot_dir}/initramfs-linux.img"
+
+    options="$(bsdtar -xOf "$iso_path" "$loader_entry" | sed -n 's/^options[[:space:]]*//p')"
+    [[ -n "$options" ]] || fatal "Could not read archiso boot options from ${loader_entry}"
+
+    printf '%s console=ttyS0,115200n8\n' "$options"
+}
+
 start_swtpm() {
     local tpm_dir="${VM_DIR}/tpm"
     local tpm_sock="${VM_DIR}/swtpm.sock"
@@ -260,6 +307,9 @@ run_install() {
     prepare_qemu_state
     start_swtpm
 
+    local append_args
+    append_args="$(prepare_iso_direct_boot)"
+
     local log_file="${VM_DIR}/install.serial.log"
     : >"$log_file"
 
@@ -268,7 +318,9 @@ run_install() {
     timeout "$TIMEOUT_INSTALL" qemu-system-x86_64 \
         $(qemu_common_args) \
         -cdrom "${VM_DIR}/arch-install-autoinstall.iso" \
-        -boot d \
+        -kernel "${VM_DIR}/direct-boot/vmlinuz-linux" \
+        -initrd "${VM_DIR}/direct-boot/initramfs-linux.img" \
+        -append "$append_args" \
         -serial "file:${log_file}"
     local qemu_status=$?
     set -e
@@ -289,13 +341,23 @@ boot_check() {
     : >"$log_file"
 
     log "Booting installed disk for serial login check"
-    set +e
     timeout "$TIMEOUT_BOOT" qemu-system-x86_64 \
         $(qemu_common_args) \
         -boot c \
-        -serial "file:${log_file}"
-    local qemu_status=$?
-    set -e
+        -serial "file:${log_file}" &
+    local qemu_pid=$!
+
+    while kill -0 "$qemu_pid" >/dev/null 2>&1; do
+        if grep -Eq 'arch-vm login:|Reached target.*Multi-User System|Reached target.*Graphical Interface' "$log_file"; then
+            kill "$qemu_pid" >/dev/null 2>&1 || true
+            wait "$qemu_pid" >/dev/null 2>&1 || true
+            log "Installed disk reached a bootable login/target state"
+            return 0
+        fi
+        sleep 2
+    done
+
+    wait "$qemu_pid" >/dev/null 2>&1 || true
 
     if grep -Eq 'arch-vm login:|Reached target.*Multi-User System|Reached target.*Graphical Interface' "$log_file"; then
         log "Installed disk reached a bootable login/target state"
@@ -303,7 +365,7 @@ boot_check() {
     fi
 
     tail -n 120 "$log_file" >&2 || true
-    fatal "Installed disk did not reach login before timeout/exit ${qemu_status}; log: ${log_file}"
+    fatal "Installed disk did not reach login before timeout; log: ${log_file}"
 }
 
 clean() {

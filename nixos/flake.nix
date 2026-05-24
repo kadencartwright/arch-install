@@ -41,22 +41,40 @@
       sops-nix,
       ...
     }:
-    {
-      nixosConfigurations.laptop = nixpkgs.lib.nixosSystem {
-        system = "x86_64-linux";
-        specialArgs = {
-          inherit inputs;
+    let
+      lib = nixpkgs.lib;
+      mkHost =
+        {
+          hostModule,
+          system ? "x86_64-linux",
+          extraModules ? [ ./hosts/common/disko.nix ],
+        }:
+        lib.nixosSystem {
+          inherit system;
+          specialArgs = {
+            inherit inputs;
+          };
+
+          modules =
+            [
+              disko.nixosModules.disko
+              home-manager.nixosModules.home-manager
+              sops-nix.nixosModules.sops
+            ]
+            ++ extraModules
+            ++ [
+              hostModule
+            ];
         };
-
-        modules = [
-          disko.nixosModules.disko
-          home-manager.nixosModules.home-manager
-          sops-nix.nixosModules.sops
-
-          ./hosts/laptop/default.nix
-          ./hosts/laptop/disko.nix
-          ./hosts/laptop/hardware-configuration.nix
-        ];
+    in
+    {
+      nixosConfigurations.Z16 = mkHost { hostModule = ./hosts/Z16/default.nix; };
+      nixosConfigurations.X1C = mkHost { hostModule = ./hosts/X1C/default.nix; };
+      nixosConfigurations.MINI = mkHost { hostModule = ./hosts/MINI/default.nix; };
+      nixosConfigurations.pi5 = mkHost {
+        hostModule = ./hosts/pi5/default.nix;
+        system = "aarch64-linux";
+        extraModules = [ ];
       };
     };
 }

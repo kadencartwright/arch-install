@@ -1,13 +1,48 @@
 # NixOS Config
 
-This folder is the replacement path for the Arch install scripts. It defines a NixOS system named `laptop` using flakes, Home Manager, `disko`, and `sops-nix`.
+This folder is the replacement path for the Arch install scripts. It defines NixOS systems named `Z16`, `X1C`, `MINI`, and `pi5` using flakes, Home Manager, `disko`, and `sops-nix`.
 
 ## Build
 
 ```bash
 nix flake check
-nixos-rebuild build --flake .#laptop
+nixos-rebuild build --flake .#Z16
+nixos-rebuild build --flake .#pi5
 ```
+
+From the repository root, common checks are wrapped in `just`:
+
+```bash
+just check
+just mini
+just switch Z16
+```
+
+Installed systems also include `nh`; day-to-day rebuilds can use:
+
+```bash
+nh os switch
+```
+
+Nix garbage collection runs weekly and deletes generations older than 14 days.
+Store optimization is enabled automatically.
+
+Avahi/mDNS is enabled, so hosts should be discoverable on the LAN as names like
+`Z16.local`, `MINI.local`, and `pi5.local` when the local network supports it.
+
+`pi5` is an `aarch64-linux` Raspberry Pi 5 configuration. Build it from an
+aarch64 machine or a builder that can handle that target.
+It currently targets a microSD boot with a plain FAT firmware partition and
+plain ext4 root by label; it does not use the shared x86 LUKS/LVM `disko`
+layout.
+
+All hosts enable OpenSSH, Mosh, Tailscale, fail2ban, and Avahi/mDNS. SSH password
+authentication is disabled, root SSH login is disabled, and user `k` is
+authorized from `https://github.com/kadencartwright.keys`.
+
+`MINI` is headless. It uses the headless Home Manager profile, so
+GUI/window-manager dotfiles and desktop packages are not installed there.
+After first boot, run `sudo tailscale up` once or provision an auth key later.
 
 ## VM Test
 
@@ -53,7 +88,7 @@ Then run:
 ```bash
 sudo nix --extra-experimental-features 'nix-command flakes' \
   run github:nix-community/disko/latest#disko-install -- \
-  --flake github:kadencartwright/arch-install/main?dir=nixos#laptop \
+  --flake github:kadencartwright/arch-install/main?dir=nixos#Z16 \
   --write-efi-boot-entries \
   --disk main /dev/disk/by-id/<explicit-disk-id>
 ```
@@ -62,7 +97,7 @@ The optional wrapper is:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/kadencartwright/arch-install/<pinned-commit>/nixos/scripts/install-nixos.sh \
-  | sudo HOST=laptop DISK=/dev/disk/by-id/<explicit-disk-id> REF=<pinned-commit> bash
+  | sudo HOST=Z16 DISK=/dev/disk/by-id/<explicit-disk-id> REF=<pinned-commit> bash
 ```
 
 Pin both the raw script URL and `REF` to a commit when installing real hardware.

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-: "${HOST:?Set HOST, for example HOST=laptop}"
+: "${HOST:?Set HOST, for example HOST=Z16}"
 : "${DISK:?Set DISK, for example DISK=/dev/disk/by-id/...}"
 
 REPO="${REPO:-github:kadencartwright/arch-install}"

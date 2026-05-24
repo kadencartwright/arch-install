@@ -46,7 +46,7 @@ This is the closer pre-metal test because it evaluates the flake as an installer
 ## Useful Options
 
 ```bash
-nixos/scripts/vm-test.sh --host laptop check
+nixos/scripts/vm-test.sh --host Z16 check
 nixos/scripts/vm-test.sh --keep-tmp check
 nixos/scripts/vm-test.sh --no-copy check
 ```
@@ -65,7 +65,7 @@ It places temp flake copies, temporary build spillover, and the default QEMU dis
 
 ```text
 ~/.cache/arch-install/nixos-vm-test/tmp
-~/.cache/arch-install/nixos-vm-test/vm/laptop.qcow2
+~/.cache/arch-install/nixos-vm-test/vm/Z16.qcow2
 ```
 
 Use a different location with:

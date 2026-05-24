@@ -4,7 +4,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 NIXOS_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
-HOST="laptop"
+HOST="Z16"
 MODE="check"
 COPY_WORKTREE=1
 KEEP_TMP=0
@@ -25,7 +25,7 @@ Modes:
   install-vm    Run nixos-anywhere --vm-test against this flake
 
 Options:
-  --host <name>       NixOS configuration name (default: laptop)
+  --host <name>       NixOS configuration name (default: Z16)
   --work-dir <path>   Work directory for temp files and VM disks
                       (default: ~/.cache/arch-install/nixos-vm-test)
   --local-store       Use a chroot Nix store under the work directory instead

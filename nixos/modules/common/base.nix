@@ -12,6 +12,7 @@
     btop
     curl
     git
+    just
     neovim
     ripgrep
     vim

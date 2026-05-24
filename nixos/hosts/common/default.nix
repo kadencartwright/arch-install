@@ -18,8 +18,6 @@
     ../../modules/hardware/tpm.nix
   ];
 
-  networking.hostName = "laptop";
-
   home-manager.useGlobalPkgs = true;
   home-manager.useUserPackages = true;
   home-manager.extraSpecialArgs = {

@@ -31,11 +31,22 @@ nixos-config/
   flake.lock
 
   hosts/
-    laptop/
+    common/
       default.nix
-      hardware-configuration.nix
       disko.nix
       home.nix
+    Z16/
+      default.nix
+      hardware-configuration.nix
+    X1C/
+      default.nix
+      hardware-configuration.nix
+    MINI/
+      default.nix
+      hardware-configuration.nix
+    pi5/
+      default.nix
+      hardware-configuration.nix
 
   modules/
     common/
@@ -82,7 +93,7 @@ Capture what the current scripts do and assign each item to a NixOS destination.
 
 | Existing Arch responsibility | Current source | NixOS destination |
 | --- | --- | --- |
-| Disk wipe, EFI, LUKS, LVM, ext4 | `install.sh` | `hosts/laptop/disko.nix` |
+| Disk wipe, EFI, LUKS, LVM, ext4 | `install.sh` | `hosts/common/disko.nix` |
 | Mount/install handoff | `install.sh` | `disko-install` or `nixos-anywhere` |
 | Timezone and locale | `chrooted.sh` | `time.timeZone`, `i18n.defaultLocale`, `i18n.supportedLocales` |
 | User `k`, wheel access, shell | `chrooted.sh` | `users.users.k`, `programs.zsh.enable` |
@@ -131,7 +142,7 @@ Minimal flake shape:
   };
 
   outputs = inputs@{ nixpkgs, disko, home-manager, sops-nix, nixos-hardware, ... }: {
-    nixosConfigurations.laptop = nixpkgs.lib.nixosSystem {
+    nixosConfigurations.Z16 = nixpkgs.lib.nixosSystem {
       system = "x86_64-linux";
       specialArgs = { inherit inputs; };
       modules = [
@@ -139,9 +150,9 @@ Minimal flake shape:
         home-manager.nixosModules.home-manager
         sops-nix.nixosModules.sops
 
-        ./hosts/laptop/default.nix
-        ./hosts/laptop/disko.nix
-        ./hosts/laptop/hardware-configuration.nix
+        ./hosts/Z16/default.nix
+        ./hosts/common/disko.nix
+        ./hosts/Z16/hardware-configuration.nix
       ];
     };
   };
@@ -151,12 +162,12 @@ Minimal flake shape:
 Acceptance criteria:
 
 - `nix flake check` evaluates.
-- `nixosConfigurations.laptop` exists.
+- `nixosConfigurations.Z16` exists.
 - `flake.lock` is committed.
 
 ### 3. Build The Minimal Host
 
-Create `hosts/laptop/default.nix` with only the settings required to boot and log in.
+Create `hosts/Z16/default.nix` with only the settings required to boot and log in.
 
 Initial scope:
 
@@ -183,7 +194,7 @@ Postpone:
 
 Acceptance criteria:
 
-- `nixos-rebuild build --flake .#laptop` succeeds.
+- `nixos-rebuild build --flake .#Z16` succeeds.
 - The config is understandable and boring enough to debug.
 
 ### 4. Add Home Manager As A NixOS Module
@@ -253,7 +264,7 @@ Acceptance criteria:
 
 ### 6. Add Declarative Disk Layout With `disko`
 
-Create `hosts/laptop/disko.nix` matching the current installer:
+Create `hosts/common/disko.nix` matching the current installer:
 
 - GPT.
 - EFI system partition.
@@ -306,15 +317,15 @@ Commands:
 
 ```bash
 nix flake check
-nixos-rebuild build --flake .#laptop
-nixos-rebuild build-vm --flake .#laptop
+nixos-rebuild build --flake .#Z16
+nixos-rebuild build-vm --flake .#Z16
 ```
 
 Test the install flow in a disposable VM:
 
 ```bash
 nix run github:nix-community/nixos-anywhere -- \
-  --flake .#laptop \
+  --flake .#Z16 \
   --vm-test
 ```
 
@@ -335,7 +346,7 @@ Local ISO install:
 ```bash
 sudo nix --extra-experimental-features 'nix-command flakes' \
   run github:nix-community/disko/latest#disko-install -- \
-  --flake github:<owner>/<repo>#laptop \
+  --flake github:<owner>/<repo>#Z16 \
   --write-efi-boot-entries \
   --disk main /dev/disk/by-id/<explicit-disk-id>
 ```
@@ -344,7 +355,7 @@ Remote or semi-remote install:
 
 ```bash
 nix run github:nix-community/nixos-anywhere -- \
-  --flake github:<owner>/<repo>#laptop \
+  --flake github:<owner>/<repo>#Z16 \
   --target-host root@<target-ip>
 ```
 
@@ -352,7 +363,7 @@ Optional wrapper:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/<owner>/<repo>/<pinned-commit>/scripts/install-nixos.sh \
-  | sudo HOST=laptop DISK=/dev/disk/by-id/<explicit-disk-id> bash
+  | sudo HOST=Z16 DISK=/dev/disk/by-id/<explicit-disk-id> bash
 ```
 
 Wrapper requirements:
@@ -389,7 +400,7 @@ Post-install rebuild:
 
 ```bash
 cd ~/src/nixos-config
-sudo nixos-rebuild switch --flake .#laptop
+sudo nixos-rebuild switch --flake .#Z16
 ```
 
 Optional UX wrapper:
@@ -403,22 +414,22 @@ Acceptance criteria:
 - Machine boots into NixOS.
 - User `k` can log in.
 - Network works.
-- `sudo nixos-rebuild switch --flake .#laptop` works.
+- `sudo nixos-rebuild switch --flake .#Z16` works.
 - Home Manager config is active.
 - Boot rollback generations are available.
 
 ## Suggested Work Order
 
 1. Add the NixOS flake skeleton.
-2. Add `hosts/laptop/default.nix`.
+2. Add `hosts/Z16/default.nix`.
 3. Add minimal Home Manager wiring.
 4. Create the package mapping document from `packages/wm.txt` and `packages/aur.txt`.
 5. Move shell, Git, editor, terminal, and CLI config into Home Manager.
 6. Add desktop/audio/font/service modules.
-7. Add `hosts/laptop/disko.nix`.
+7. Add `hosts/common/disko.nix`.
 8. Add placeholder secrets structure and document the chosen tool.
 9. Run `nix flake check`.
-10. Run `nixos-rebuild build --flake .#laptop`.
+10. Run `nixos-rebuild build --flake .#Z16`.
 11. Run VM boot and VM install tests.
 12. Add the tiny install wrapper.
 13. Back up the real machine.

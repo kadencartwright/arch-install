@@ -15,6 +15,9 @@ LUKS_PARTITION=""
 ROOT_PASSWORD=""
 USER_PASSWORD=""
 LUKS_PASSPHRASE=""
+SKIP_AUR=0
+SKIP_DOTFILES=0
+VM_TEST=0
 
 WHEEL_BACKUP=""
 SUDOERS_MODIFIED=0
@@ -167,9 +170,18 @@ chown "$USERNAME":"$USERNAME" "/home/${USERNAME}/install-dotfiles.sh"
 chown "$USERNAME":"$USERNAME" "/home/${USERNAME}/install-aur-packages.sh"
 chown "$USERNAME":"$USERNAME" "/home/${USERNAME}/aur.txt"
 
-su - "$USERNAME" -c "/home/${USERNAME}/install-yay.sh"
-su - "$USERNAME" -c "/home/${USERNAME}/install-aur-packages.sh"
-su - "$USERNAME" -c "/home/${USERNAME}/install-dotfiles.sh"
+if (( SKIP_AUR == 0 )); then
+    su - "$USERNAME" -c "/home/${USERNAME}/install-yay.sh"
+    su - "$USERNAME" -c "/home/${USERNAME}/install-aur-packages.sh"
+else
+    log "Skipping yay and AUR package installation"
+fi
+
+if (( SKIP_DOTFILES == 0 )); then
+    su - "$USERNAME" -c "/home/${USERNAME}/install-dotfiles.sh"
+else
+    log "Skipping dotfiles installation"
+fi
 
 if [[ -n "$WHEEL_BACKUP" && -f "$WHEEL_BACKUP" ]]; then
     mv -f "$WHEEL_BACKUP" /etc/sudoers.d/wheel
@@ -215,6 +227,10 @@ if [[ -n "$LUKS_UUID" ]]; then
 fi
 
 CMDLINE="${LUKS_ARG} rd.lvm.lv=${VG_NAME}/${LV_NAME} root=/dev/mapper/${VG_NAME}-${LV_NAME} rootfstype=${ROOT_FSTYPE} rootflags=rw,relatime"
+if (( VM_TEST )); then
+    CMDLINE="${CMDLINE} console=ttyS0,115200n8"
+    systemctl enable serial-getty@ttyS0.service
+fi
 mkdir -p /etc/kernel
 printf '%s\n' "$CMDLINE" >/etc/kernel/cmdline
 

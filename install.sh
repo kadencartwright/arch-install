@@ -16,6 +16,9 @@ DRY_RUN=0
 ROOT_PASSWORD_FILE=""
 USER_PASSWORD_FILE=""
 LUKS_PASSPHRASE_FILE=""
+SKIP_AUR=0
+SKIP_DOTFILES=0
+VM_TEST=0
 
 ROOT_PASSWORD=""
 USER_PASSWORD=""
@@ -37,6 +40,9 @@ Options:
   --root-password-file <path>   Read root password from file
   --user-password-file <path>   Read user password from file
   --luks-passphrase-file <path> Read LUKS passphrase from file
+  --skip-aur                   Skip yay and AUR package installation
+  --skip-dotfiles              Skip dotfiles installation
+  --vm-test                    Enable VM-friendly installed-system settings
   --non-interactive             Fail instead of prompting for input
   --dry-run                     Print planned actions only
   --help                        Show this help text
@@ -197,6 +203,18 @@ while [[ $# -gt 0 ]]; do
         --luks-passphrase-file)
             LUKS_PASSPHRASE_FILE="${2:-}"
             shift 2
+            ;;
+        --skip-aur)
+            SKIP_AUR=1
+            shift
+            ;;
+        --skip-dotfiles)
+            SKIP_DOTFILES=1
+            shift
+            ;;
+        --vm-test)
+            VM_TEST=1
+            shift
             ;;
         --non-interactive)
             NON_INTERACTIVE=1
@@ -375,6 +393,9 @@ HOSTNAME=$(printf '%q' "$HOSTNAME")
 USERNAME=$(printf '%q' "$USERNAME")
 TIMEZONE=$(printf '%q' "$TIMEZONE")
 LUKS_PARTITION=$(printf '%q' "$LUKS_PARTITION")
+SKIP_AUR=$(printf '%q' "$SKIP_AUR")
+SKIP_DOTFILES=$(printf '%q' "$SKIP_DOTFILES")
+VM_TEST=$(printf '%q' "$VM_TEST")
 EOF
 chmod 600 "$CONFIG_FILE"
 

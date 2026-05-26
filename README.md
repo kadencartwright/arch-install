@@ -40,6 +40,35 @@ Supported flags:
 - Uses root-only secret handoff files for chroot stage and removes them on exit.
 - Temporarily grants wheel `NOPASSWD` for post-install user actions and restores sudoers on exit.
 
+## Live ISO bootstrap
+
+From the Arch live ISO, you can launch an interactive installer wrapper with:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/kadencartwright/arch-install/main/scripts/bootstrap-live.sh | sh
+```
+
+The bootstrap script prompts for:
+
+- target disk, shown with stable `/dev/disk/by-id/...` paths where available
+- hostname
+- username
+- timezone
+- whether to install AUR packages
+- whether to install dotfiles
+- root password
+- user password
+- LUKS passphrase
+
+It clones this repo into `/tmp/arch-install`, writes temporary root-only secret files, asks for a final `ERASE` confirmation, and then runs `install.sh`.
+
+Useful overrides:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/kadencartwright/arch-install/main/scripts/bootstrap-live.sh \
+  | REPO_REF=main INSTALL_DIR=/tmp/arch-install sh
+```
+
 ## Supply-chain notes
 
 - `install-yay.sh` and `install-dotfiles.sh` support ref pinning through env vars:

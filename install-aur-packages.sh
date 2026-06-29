@@ -17,4 +17,4 @@ if [[ ${#aur_packages[@]} -eq 0 ]]; then
     exit 0
 fi
 
-yay -S --noconfirm --needed "${aur_packages[@]}"
+yay -S --noconfirm --needed --answerclean None --answerdiff None "${aur_packages[@]}"

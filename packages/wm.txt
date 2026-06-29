@@ -1,11 +1,16 @@
 adw-gtk-theme
 alacritty
+atuin
+bat
 bitwarden
 brightnessctl
 btop
 chromium
+eza
+fd
 vivaldi
 fprintd
+fzf
 fuzzel
 gnome-keyring
 hypridle
@@ -36,7 +41,6 @@ thunar-volman
 tpm2-tools
 tpm2-tss
 ttf-dejavu-nerd
-ttf-font-awesome
 ttf-meslo-nerd
 tumbler
 waybar
@@ -44,6 +48,7 @@ xdg-desktop-portal-hyprland
 zsh
 zsh-autosuggestions
 zsh-completions
+zoxide
 ripgrep
 systemd-ukify
 otf-font-awesome

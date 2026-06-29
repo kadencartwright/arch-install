@@ -226,11 +226,15 @@ main() {
 
     skip_aur=0
     skip_dotfiles=0
+    x1c_power_workaround=0
     if ! prompt_yes_no "Install yay and AUR packages?" "y"; then
         skip_aur=1
     fi
     if ! prompt_yes_no "Install dotfiles?" "y"; then
         skip_dotfiles=1
+    fi
+    if prompt_yes_no "Apply ThinkPad X1 Carbon power workaround kernel params?" "n"; then
+        x1c_power_workaround=1
     fi
 
     root_password="$(prompt_secret "Root password")"
@@ -253,6 +257,11 @@ main() {
         printf '  dotfiles: skipped\n' >/dev/tty
     else
         printf '  dotfiles: enabled\n' >/dev/tty
+    fi
+    if [ "$x1c_power_workaround" -eq 1 ]; then
+        printf '  X1C power workaround: enabled\n' >/dev/tty
+    else
+        printf '  X1C power workaround: skipped\n' >/dev/tty
     fi
 
     printf '\nThis will ERASE %s.\n' "$disk" >/dev/tty
@@ -283,6 +292,9 @@ main() {
     fi
     if [ "$skip_dotfiles" -eq 1 ]; then
         set -- "$@" --skip-dotfiles
+    fi
+    if [ "$x1c_power_workaround" -eq 1 ]; then
+        set -- "$@" --x1c-power-workaround
     fi
 
     log "Starting installer"

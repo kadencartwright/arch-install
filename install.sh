@@ -19,6 +19,7 @@ LUKS_PASSPHRASE_FILE=""
 SKIP_AUR=0
 SKIP_DOTFILES=0
 VM_TEST=0
+X1C_POWER_WORKAROUND=0
 
 ROOT_PASSWORD=""
 USER_PASSWORD=""
@@ -42,6 +43,7 @@ Options:
   --luks-passphrase-file <path> Read LUKS passphrase from file
   --skip-aur                   Skip yay and AUR package installation
   --skip-dotfiles              Skip dotfiles installation
+  --x1c-power-workaround       Add ThinkPad X1 Carbon power workaround kernel params
   --vm-test                    Enable VM-friendly installed-system settings
   --non-interactive             Fail instead of prompting for input
   --dry-run                     Print planned actions only
@@ -218,6 +220,10 @@ while [[ $# -gt 0 ]]; do
             VM_TEST=1
             shift
             ;;
+        --x1c-power-workaround)
+            X1C_POWER_WORKAROUND=1
+            shift
+            ;;
         --non-interactive)
             NON_INTERACTIVE=1
             shift
@@ -328,6 +334,11 @@ if (( DRY_RUN )); then
     log "- install user: ${USERNAME}"
     log "- timezone: ${TIMEZONE}"
     log "- hostname: ${HOSTNAME}"
+    if (( X1C_POWER_WORKAROUND )); then
+        log "- X1 Carbon power workaround: enabled"
+    else
+        log "- X1 Carbon power workaround: disabled"
+    fi
     exit 0
 fi
 
@@ -404,6 +415,7 @@ LUKS_PARTITION=$(printf '%q' "$LUKS_PARTITION")
 SKIP_AUR=$(printf '%q' "$SKIP_AUR")
 SKIP_DOTFILES=$(printf '%q' "$SKIP_DOTFILES")
 VM_TEST=$(printf '%q' "$VM_TEST")
+X1C_POWER_WORKAROUND=$(printf '%q' "$X1C_POWER_WORKAROUND")
 EOF
 chmod 600 "$CONFIG_FILE"
 

@@ -18,6 +18,7 @@ LUKS_PASSPHRASE=""
 SKIP_AUR=0
 SKIP_DOTFILES=0
 VM_TEST=0
+X1C_POWER_WORKAROUND=0
 
 WHEEL_BACKUP=""
 SUDOERS_MODIFIED=0
@@ -227,6 +228,9 @@ if [[ -n "$LUKS_UUID" ]]; then
 fi
 
 CMDLINE="${LUKS_ARG} rd.lvm.lv=${VG_NAME}/${LV_NAME} root=/dev/mapper/${VG_NAME}-${LV_NAME} rootfstype=${ROOT_FSTYPE} rootflags=rw,relatime"
+if (( X1C_POWER_WORKAROUND )); then
+    CMDLINE="${CMDLINE} mem_sleep_default=s2idle pcie_aspm=force pcie_port_pm=on usbcore.autosuspend=1 snd_hda_intel.power_save=1 nvme.noacpi=1"
+fi
 if (( VM_TEST )); then
     CMDLINE="${CMDLINE} console=ttyS0,115200n8"
     systemctl enable serial-getty@ttyS0.service

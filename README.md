@@ -29,6 +29,7 @@ Supported flags:
 - `--root-password-file <path>`
 - `--user-password-file <path>`
 - `--luks-passphrase-file <path>`
+- `--x1c-power-workaround` (add ThinkPad X1 Carbon power workaround kernel params)
 - `--non-interactive`
 - `--dry-run`
 
@@ -56,6 +57,7 @@ The bootstrap script prompts for:
 - timezone
 - whether to install AUR packages
 - whether to install dotfiles
+- whether to apply ThinkPad X1 Carbon power workaround kernel params
 - root password
 - user password
 - LUKS passphrase

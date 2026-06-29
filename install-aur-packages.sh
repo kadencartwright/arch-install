@@ -10,4 +10,11 @@ if [[ ! -f "$AUR_FILE" ]]; then
     exit 1
 fi
 
-yay -S --noconfirm --needed - < "$AUR_FILE"
+mapfile -t aur_packages < <(sed -e 's/[[:space:]]*#.*$//' -e '/^[[:space:]]*$/d' "$AUR_FILE")
+
+if [[ ${#aur_packages[@]} -eq 0 ]]; then
+    printf '[install-aur] no packages listed in %s\n' "$AUR_FILE"
+    exit 0
+fi
+
+yay -S --noconfirm --needed "${aur_packages[@]}"

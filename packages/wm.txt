@@ -13,6 +13,7 @@ fprintd
 fzf
 fuzzel
 gnome-keyring
+ghostty
 hypridle
 hyprland
 hyprlock

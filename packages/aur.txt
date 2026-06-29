@@ -3,7 +3,11 @@ appimagelauncher
 bemoji
 bluetuith-bin
 hyprwhspr
+openai-codex-desktop
 reflector-simple
+slack-desktop
+t3code-bin
+wayle
 tmux-sessionizer-bin
 ttf-apple-emoji
 ttf-segoe-ui-variable

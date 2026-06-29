@@ -16,6 +16,7 @@ eza
 fd
 vivaldi
 fprintd
+fnm
 fzf
 fuzzel
 gnome-keyring
@@ -42,6 +43,8 @@ pipewire-jack
 pipewire-pulse
 power-profiles-daemon
 qpwgraph
+qt5-wayland
+qt6-wayland
 rustup
 swaync
 tailscale
@@ -64,6 +67,7 @@ ydotool
 ripgrep
 systemd-ukify
 otf-font-awesome
+openai-codex
 profile-sync-daemon
 thunderbird
 lazygit

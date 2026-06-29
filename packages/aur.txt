@@ -1,6 +1,8 @@
 dracut-ukify
+appimagelauncher
 bemoji
 bluetuith-bin
+hyprwhspr
 reflector-simple
 tmux-sessionizer-bin
 ttf-apple-emoji

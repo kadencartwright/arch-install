@@ -120,7 +120,9 @@ prompt_input() {
 partition_path() {
     local disk="$1"
     local index="$2"
-    if [[ "$disk" =~ (nvme[0-9]+n[0-9]+|mmcblk[0-9]+|loop[0-9]+)$ ]]; then
+    if [[ "$disk" == /dev/disk/* ]]; then
+        printf '%s-part%s' "$disk" "$index"
+    elif [[ "$disk" =~ (nvme[0-9]+n[0-9]+|mmcblk[0-9]+|loop[0-9]+)$ ]]; then
         printf '%sp%s' "$disk" "$index"
     else
         printf '%s%s' "$disk" "$index"
@@ -244,6 +246,8 @@ require_cmd mkfs.fat
 require_cmd mkfs.ext4
 require_cmd mount
 require_cmd partprobe
+require_cmd udevadm
+require_cmd wipefs
 require_cmd findmnt
 require_cmd umount
 require_cmd swapon
@@ -331,15 +335,19 @@ log "Partitioning disk ${DISK}"
 ensure_disk_partitions_unmounted "$DISK"
 run sgdisk --clear -n 1:0:+1G -t 1:ef00 -n 2:0:+0 -t 2:8e00 "$DISK"
 run partprobe "$DISK"
+run udevadm settle
 
 [[ -b "$BOOT_PARTITION" ]] || fatal "Boot partition not found: $BOOT_PARTITION"
 [[ -b "$LUKS_PARTITION" ]] || fatal "LUKS partition not found: $LUKS_PARTITION"
+
+log "Clearing old filesystem signatures"
+run wipefs --all --force "$BOOT_PARTITION" "$LUKS_PARTITION"
 
 log "Formatting boot partition ${BOOT_PARTITION}"
 run mkfs.fat -F 32 "$BOOT_PARTITION"
 
 log "Formatting and opening LUKS partition ${LUKS_PARTITION}"
-printf '%s' "$LUKS_PASSPHRASE" | cryptsetup luksFormat "$LUKS_PARTITION" -
+printf '%s' "$LUKS_PASSPHRASE" | cryptsetup luksFormat --batch-mode "$LUKS_PARTITION" -
 printf '%s' "$LUKS_PASSPHRASE" | cryptsetup open "$LUKS_PARTITION" cryptlvm --key-file -
 
 VG_NAME="vg1"
